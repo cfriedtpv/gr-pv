@@ -31,4 +31,5 @@ except ImportError:
 	pass
 
 # import any pure python here
+from uhd_pv_source import uhd_pv_source
 #
