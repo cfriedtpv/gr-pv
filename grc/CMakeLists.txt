@@ -18,5 +18,6 @@
 # Boston, MA 02110-1301, USA.
 
 install(FILES
-    pv_uhd_pv_source.xml DESTINATION share/gnuradio/grc/blocks
+    pv_uhd_pv_source.xml
+    pv_uhd_pv_sink.xml DESTINATION share/gnuradio/grc/blocks
 )
