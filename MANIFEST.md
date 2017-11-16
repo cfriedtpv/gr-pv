@@ -1,16 +1,19 @@
-title: The PV OOT Module
-brief: Short description of gr-pv
+title: The Per Vices OOT Module
+brief: Python and GRC Bindings for Per Vices' version of UHD USRP Blocks
 tags: # Tags are arbitrary, but look at CGRAN what other authors are using
   - sdr
 author:
-  - Author Name <authors@email.address>
+  - Christopher Friedt <chris.f@pervices.com>
 copyright_owner:
-  - Copyright Owner 1
-license:
-#repo: # Put the URL of the repository here, or leave blank for default
-#website: <module_website> # If you have a separate project website, put it here
+  - Copyright Owner Per Vices Corporation
+license: GPLv3
+repo: https://github.com/pervices/gr-pv
+website: https://www.pervices.com
 #icon: <icon_url> # Put a URL to a square image here that will be used as an icon on CGRAN
 ---
-A longer, multi-line description of gr-pv.
-You may use some *basic* Markdown here.
-If left empty, it will try to find a README file instead.
+git clone https://github.com/pervices/gr-pv
+mkdir -p gr-pv-build
+cd gr-pv-build
+cmake -DCMAKE_INSTALL_PREFIX=/usr ../gr-pv
+make
+make DESTDIR=${PWD}/../gr-pv-install install

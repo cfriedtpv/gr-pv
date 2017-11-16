@@ -21,7 +21,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
 MAIN_TMPL = """\
 <?xml version="1.0"?>
 <block>
-	<name>UHD: PV $sourk.title()</name>
+	<name>Per Vices $sourk.title()</name>
 	<key>uhd_pv_$(sourk)</key>
 	<flags>throttle</flags>
 	<import>from gnuradio import uhd</import>
@@ -119,12 +119,6 @@ set_lo_export_enabled(\$lo_export$(n), uhd.ALL_LOS, $n)
 	<callback>set_bandwidth(\$bw$(n), $n)</callback>
 	#end for
 	<param>
-		<name>Start of Burst</name>
-		<key>crimson:sob</key>
-		<type>real</type>
-		<value>0</value>
-	</param>
-	<param>
 		<name>$(direction.title())put Type</name>
 		<key>type</key>
 		<type>enum</type>
@@ -143,6 +137,12 @@ set_lo_export_enabled(\$lo_export$(n), uhd.ALL_LOS, $n)
 			<key>item32</key>
 			<opt>type:s32</opt>
 		</option>
+	</param>
+	<param>
+		<name>Start of Burst</name>
+		<key>crimson:sob</key>
+		<value>0</value>
+		<type>real</type>
 	</param>
 	<param>
 		<name>Wire Format</name>

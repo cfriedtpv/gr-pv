@@ -19,16 +19,7 @@
 # The presence of this file turns this directory into a Python package
 
 '''
-This is the GNU Radio PV module. Place your Python package
-description here (python/__init__.py).
 '''
-
-# import swig generated symbols into the pv namespace
-try:
-	# this might fail if the module is python-only
-	from pv_swig import *
-except ImportError:
-	pass
 
 # import any pure python here
 from uhd_pv_source import uhd_pv_source

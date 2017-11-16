@@ -18,12 +18,9 @@
 # Boston, MA 02110-1301, USA.
 
 ########################################################################
-# Include python install macros
+# Install python sources
 ########################################################################
 include(GrPython)
-if(NOT PYTHONINTERP_FOUND)
-    return()
-endif()
 
 ########################################################################
 # Install python sources
@@ -32,13 +29,7 @@ GR_PYTHON_INSTALL(
     FILES
     __init__.py
     uhd_pv_source.py
-    uhd_pv_sink.py DESTINATION ${GR_PYTHON_DIR}/pv
+    uhd_pv_sink.py
+    DESTINATION ${GR_PYTHON_DIR}/gnuradio/pv
+    COMPONENT "pv_python"
 )
-
-########################################################################
-# Handle the unit tests
-########################################################################
-include(GrTest)
-
-set(GR_TEST_TARGET_DEPS gnuradio-pv)
-set(GR_TEST_PYTHON_DIRS ${CMAKE_BINARY_DIR}/swig)
