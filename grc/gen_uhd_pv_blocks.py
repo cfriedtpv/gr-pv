@@ -122,27 +122,25 @@ set_lo_export_enabled(\$lo_export$(n), uhd.ALL_LOS, $n)
 		<name>$(direction.title())put Type</name>
 		<key>type</key>
 		<type>enum</type>
+<!--
 		<option>
 			<name>Complex float32</name>
 			<key>fc32</key>
 			<opt>type:fc32</opt>
 		</option>
+-->
 		<option>
 			<name>Complex int16</name>
 			<key>sc16</key>
 			<opt>type:sc16</opt>
 		</option>
+<!--
 		<option>
 			<name>VITA word32</name>
 			<key>item32</key>
 			<opt>type:s32</opt>
 		</option>
-	</param>
-	<param>
-		<name>Start of Burst</name>
-		<key>crimson:sob</key>
-		<value>0</value>
-		<type>real</type>
+-->
 	</param>
 	<param>
 		<name>Wire Format</name>
@@ -156,22 +154,28 @@ set_lo_export_enabled(\$lo_export$(n), uhd.ALL_LOS, $n)
 				part
 			\#end if
 		</hide>
+<!--
 		<option>
 			<name>Automatic</name>
 			<key></key>
 		</option>
+-->
 		<option>
 			<name>Complex int16</name>
 			<key>sc16</key>
 		</option>
+<!--
 		<option>
 			<name>Complex int12</name>
 			<key>sc12</key>
 		</option>
+-->
+<!--
 		<option>
 			<name>Complex int8</name>
 			<key>sc8</key>
 		</option>
+-->
 	</param>
 	<param>
 		<name>Stream args</name>
@@ -229,6 +233,7 @@ set_lo_export_enabled(\$lo_export$(n), uhd.ALL_LOS, $n)
 			\#end if
 		</hide>
 	</param>
+<!--
 	<param>
 		<name>Sync</name>
 		<key>sync</key>
@@ -248,6 +253,8 @@ set_lo_export_enabled(\$lo_export$(n), uhd.ALL_LOS, $n)
 			<key></key>
 		</option>
 	</param>
+-->
+<!--
 	<param>
 		<name>Clock Rate (Hz)</name>
 		<key>clock_rate</key>
@@ -275,6 +282,7 @@ set_lo_export_enabled(\$lo_export$(n), uhd.ALL_LOS, $n)
 			<key>30.72e6</key>
 		</option>
 	</param>
+-->
 	<param>
 		<name>Num Mboards</name>
 		<key>num_mboards</key>
@@ -680,6 +688,16 @@ TSBTAG_PARAM = """	<param>
 		<hide>\#if len(str(\$len_tag_name())) then 'none' else 'part'#</hide>
 	</param>"""
 
+PER_VICES_PARAM = """
+	<param>
+		<name>Start of Burst</name>
+		<key>crimson:sob</key>
+		<value>0</value>
+		<type>real</type>
+		<tab>Advanced</tab>
+	</param>
+"""
+
 TSBTAG_ARG = """
 	#if $len_tag_name()
 	$len_tag_name,
@@ -706,6 +724,7 @@ if __name__ == '__main__':
 		params = ''.join([parse_tmpl(PARAMS_TMPL, n=n, sourk=sourk) for n in range(max_num_channels)])
 		params += SHOW_CMD_PORT_PARAM
 		params += SHOW_LO_CONTROLS_PARAM
+		params += PER_VICES_PARAM
 		if sourk == 'sink':
 			params += TSBTAG_PARAM
 			lentag_arg = TSBTAG_ARG
