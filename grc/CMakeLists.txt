@@ -17,7 +17,29 @@
 # the Free Software Foundation, Inc., 51 Franklin Street,
 # Boston, MA 02110-1301, USA.
 
+########################################################################
+# Rules for generating the source and sink xml wrappers
+########################################################################
+include(GrPython)
+
+macro(GEN_BLOCK_XML _generator _xml_block)
+    set(generator ${CMAKE_CURRENT_SOURCE_DIR}/${_generator})
+    set(xml_block ${CMAKE_CURRENT_BINARY_DIR}/${_xml_block})
+    list(APPEND xml_blocks ${xml_block})
+    add_custom_command(
+        DEPENDS ${generator} OUTPUT ${xml_block}
+        COMMAND ${PYTHON_EXECUTABLE} ${generator} ${xml_block}
+    )
+endmacro(GEN_BLOCK_XML)
+
+GEN_BLOCK_XML(gen_uhd_pv_blocks.py    uhd_pv_source.xml)
+GEN_BLOCK_XML(gen_uhd_pv_blocks.py    uhd_pv_sink.xml)
+
+add_custom_target(uhd_grc_xml_blocks ALL DEPENDS ${xml_blocks})
+
 install(FILES
-    pv_uhd_pv_source.xml
-    pv_uhd_pv_sink.xml DESTINATION share/gnuradio/grc/blocks
+    ${xml_blocks}
+    uhd_block_tree.xml
+    DESTINATION ${GRC_BLOCKS_DIR}
+    COMPONENT "uhd_python"
 )

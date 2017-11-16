@@ -676,23 +676,7 @@
 # <http://www.gnu.org/philosophy/why-not-lgpl.html>.
 # 
 
-import numpy
-from gnuradio import gr
+from gnuradio import uhd
 
-class uhd_pv_source(gr.sync_block):
-    """
-    docstring for block uhd_pv_source
-    """
-    def __init__(self):
-        gr.sync_block.__init__(self,
-            name="uhd_pv_source",
-            in_sig=None,
-            out_sig=[<+numpy.float+>])
-
-
-    def work(self, input_items, output_items):
-        out = output_items[0]
-        # <+signal processing here+>
-        out[:] = whatever
-        return len(output_items[0])
-
+class uhd_pv_source(uhd.usrp_source):
+    pass
