@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<!--
+###################################################
+##Block Tree for uhd blocks.
+###################################################
+ -->
+<cat>
+	<name>[Core]</name> <!-- Blank for Root Name -->
+	<cat>
+		<name>Per Vices</name>
+		<block>uhd_pv_source</block>
+		<block>uhd_pv_sink</block>
+	</cat>
+</cat>
