@@ -145,7 +145,7 @@ set_lo_export_enabled(\$lo_export$(n), uhd.ALL_LOS, $n)
 	<param>
 		<name>Wire Format</name>
 		<key>otw</key>
-		<value></value>
+		<value>sc16</value>
 		<type>string</type>
 		<hide>
 			\#if \$otw()
@@ -696,6 +696,159 @@ PER_VICES_PARAM = """
 		<type>real</type>
 		<tab>Advanced</tab>
 	</param>
+	<param>
+		<name>SMA Direction</name>
+		<key>crimson:fpga/trigger/sma_dir</key>
+		<value>False</value>
+		<type>bool</type>
+		<hide>part</hide>
+		<option>
+			<name>Output</name>
+			<key>False</key>
+		</option>
+		<option>
+			<name>Input</name>
+			<key>True</key>
+		</option>
+		<tab>Advanced</tab>
+	</param>
+	<param>
+		<name>SMA Polarity</name>
+		<key>crimson:fpga/trigger/sma_pol</key>
+		<value>False</value>
+		<type>bool</type>
+		<hide>part</hide>
+		<option>
+			<name>-</name>
+			<key>False</key>
+		</option>
+		<option>
+			<name>+</name>
+			<key>True</key>
+		</option>
+		<tab>Advanced</tab>
+	</param>
+"""
+
+PER_VICES_PER_CHANNEL_PARAM = """
+	<param>
+		<name>Ch$(n) Edge Backoff</name>
+		<key>crimson:$(trx)/\$(97+$(n))/trigger/edge_backoff</key>
+		<value>0</value>
+		<type>int</type>
+		<hide>
+			\#if not \$nchan() > $n
+				all
+			\#else
+				part
+			\#end if
+		</hide>
+		<tab>Advanced</tab>
+	</param>
+	<param>
+		<name>Ch$(n) Edge Sample Num</name>
+		<key>crimson:$(trx)/\$(97+$(n))/trigger/edge_sample_num</key>
+		<value>0</value>
+		<type>int</type>
+		<hide>
+			\#if not \$nchan() > $n
+				all
+			\#else
+				none
+			\#end if
+		</hide>
+		<tab>Advanced</tab>
+	</param>
+	<param>
+		<name>Ch$(n) UFL Mode</name>
+		<key>crimson:$(trx)/\$(97+$(n))/trigger/ufl_edge_mode</key>
+		<value>False</value>
+		<type>bool</type>
+		<hide>
+			\#if not \$nchan() > $n
+				all
+			\#else
+				part
+			\#end if
+		</hide>
+		<option>
+			<name>Level</name>
+			<key>False</key>
+		</option>
+		<option>
+			<name>Edge</name>
+			<key>True</key>
+		</option>
+		<tab>Advanced</tab>
+	</param>
+	<param>
+		<name>Ch$(n) UFL Direction</name>
+		<key>crimson:$(trx)/\$(97+$(n))/trigger/ufl_edge_dir</key>
+		<value>False</value>
+		<type>bool</type>
+		<hide>
+			\#if not \$nchan() > $n
+				all
+			\#else
+				part
+			\#end if
+		</hide>
+		<option>
+			<name>Out</name>
+			<key>False</key>
+		</option>
+		<option>
+			<name>In</name>
+			<key>True</key>
+		</option>
+		<tab>Advanced</tab>
+	</param>
+	<param>
+		<name>Ch$(n) UFL Polarity</name>
+		<key>crimson:$(trx)/\$(97+$(n))/trigger/ufl_edge_pol</key>
+		<value>False</value>
+		<type>bool</type>
+		<hide>
+			\#if not \$nchan() > $n
+				all
+			\#else
+				part
+			\#end if
+		</hide>
+		<option>
+			<name>-</name>
+			<key>False</key>
+		</option>
+		<option>
+			<name>+</name>
+			<key>True</key>
+		</option>
+		<tab>Advanced</tab>
+	</param>
+#if $sourk == 'sink'
+	<param>
+		<name>Ch$(n) Gating</name>
+		<key>crimson:$(trx)/\$(97+$(n))/trigger/gating</key>
+		<value>output</value>
+		<type>string</type>
+		<hide>
+			\#if not \$nchan() > $n
+				all
+			\#else
+				part
+			\#end if
+		</hide>
+		<option>
+			<name>Output</name>
+			<key>output</key>
+		</option>
+		<option>
+			<name>DSP</name>
+			<key>dsp</key>
+		</option>
+		<tab>Advanced</tab>
+	</param>
+#end if
 """
 
 TSBTAG_ARG = """
@@ -716,15 +869,18 @@ if __name__ == '__main__':
 		if file.endswith ('source.xml'):
 			sourk = 'source'
 			direction = 'out'
+			trx = 'rx'
 		elif file.endswith ('sink.xml'):
 			sourk = 'sink'
 			direction = 'in'
+			trx = 'tx'
 		else: raise Exception, 'is %s a source or sink?'%file
 
 		params = ''.join([parse_tmpl(PARAMS_TMPL, n=n, sourk=sourk) for n in range(max_num_channels)])
 		params += SHOW_CMD_PORT_PARAM
 		params += SHOW_LO_CONTROLS_PARAM
 		params += PER_VICES_PARAM
+		params += ''.join([parse_tmpl(PER_VICES_PER_CHANNEL_PARAM, n=n, sourk=sourk, trx=trx) for n in range(max_num_channels)])
 		if sourk == 'sink':
 			params += TSBTAG_PARAM
 			lentag_arg = TSBTAG_ARG
