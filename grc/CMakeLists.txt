@@ -32,14 +32,14 @@ macro(GEN_BLOCK_XML _generator _xml_block)
     )
 endmacro(GEN_BLOCK_XML)
 
-GEN_BLOCK_XML(gen_uhd_pv_blocks.py    uhd_pv_source.xml)
-GEN_BLOCK_XML(gen_uhd_pv_blocks.py    uhd_pv_sink.xml)
+GEN_BLOCK_XML(gen_pv_usrp_blocks.py    pv_usrp_source.xml)
+GEN_BLOCK_XML(gen_pv_usrp_blocks.py    pv_usrp_sink.xml)
 
-add_custom_target(uhd_grc_xml_blocks ALL DEPENDS ${xml_blocks})
+add_custom_target(pv_grc_xml_blocks ALL DEPENDS ${xml_blocks})
 
 install(FILES
     ${xml_blocks}
-    uhd_block_tree.xml
+    pv_block_tree.xml
     DESTINATION ${GRC_BLOCKS_DIR}
-    COMPONENT "uhd_python"
+    COMPONENT "pv_python"
 )

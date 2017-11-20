@@ -22,6 +22,6 @@
 '''
 
 # import any pure python here
-from uhd_pv_source import uhd_pv_source
-from uhd_pv_sink import uhd_pv_sink
+from pv_usrp_source import pv_usrp_source
+from pv_usrp_sink import pv_usrp_sink
 #
