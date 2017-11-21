@@ -123,25 +123,21 @@ set_lo_export_enabled(\$lo_export$(n), uhd.ALL_LOS, $n)
 		<name>$(direction.title())put Type</name>
 		<key>type</key>
 		<type>enum</type>
-<!--
 		<option>
 			<name>Complex float32</name>
 			<key>fc32</key>
 			<opt>type:fc32</opt>
 		</option>
--->
 		<option>
 			<name>Complex int16</name>
 			<key>sc16</key>
 			<opt>type:sc16</opt>
 		</option>
-<!--
 		<option>
 			<name>VITA word32</name>
 			<key>item32</key>
 			<opt>type:s32</opt>
 		</option>
--->
 	</param>
 	<param>
 		<name>Wire Format</name>
