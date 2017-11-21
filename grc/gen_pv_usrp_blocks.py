@@ -27,7 +27,7 @@ MAIN_TMPL = """\
 	<import>from gnuradio import uhd</import>
 	<import>from gnuradio import pv</import>
 	<import>import time</import>
-	<make>pv.pv_usrp_$(sourk)(
+	<make>pv.usrp_$(sourk)(
 	",".join((\$dev_addr, \$dev_args)),
 	uhd.stream_args(
 		cpu_format="\$type",
