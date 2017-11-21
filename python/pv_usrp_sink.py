@@ -680,6 +680,9 @@ from gnuradio import uhd
 
 class usrp_sink( object ):
 
+    def __init__(self, *args, **kwargs):
+        raise AttributeError("No constructor defined - class is abstract")
+
     def make( device_addr_strdict, stream_args ):
         return uhd.usrp_sink_make( uhd.device_addr_t( device_addr_strdict ), stream_args )
 

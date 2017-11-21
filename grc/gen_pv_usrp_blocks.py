@@ -155,28 +155,22 @@ set_lo_export_enabled(\$lo_export$(n), uhd.ALL_LOS, $n)
 				part
 			\#end if
 		</hide>
-<!--
 		<option>
 			<name>Automatic</name>
 			<key></key>
 		</option>
--->
 		<option>
 			<name>Complex int16</name>
 			<key>sc16</key>
 		</option>
-<!--
 		<option>
 			<name>Complex int12</name>
 			<key>sc12</key>
 		</option>
--->
-<!--
 		<option>
 			<name>Complex int8</name>
 			<key>sc8</key>
 		</option>
--->
 	</param>
 	<param>
 		<name>Stream args</name>
@@ -234,7 +228,6 @@ set_lo_export_enabled(\$lo_export$(n), uhd.ALL_LOS, $n)
 			\#end if
 		</hide>
 	</param>
-<!--
 	<param>
 		<name>Sync</name>
 		<key>sync</key>
@@ -254,8 +247,6 @@ set_lo_export_enabled(\$lo_export$(n), uhd.ALL_LOS, $n)
 			<key></key>
 		</option>
 	</param>
--->
-<!--
 	<param>
 		<name>Clock Rate (Hz)</name>
 		<key>clock_rate</key>
@@ -283,7 +274,6 @@ set_lo_export_enabled(\$lo_export$(n), uhd.ALL_LOS, $n)
 			<key>30.72e6</key>
 		</option>
 	</param>
--->
 	<param>
 		<name>Num Mboards</name>
 		<key>num_mboards</key>
