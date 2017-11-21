@@ -28,8 +28,8 @@ include(GrPython)
 GR_PYTHON_INSTALL(
     FILES
     __init__.py
-    uhd_pv_source.py
-    uhd_pv_sink.py
+    pv_usrp_sink.py
+    pv_usrp_source.py
     DESTINATION ${GR_PYTHON_DIR}/gnuradio/pv
     COMPONENT "pv_python"
 )
