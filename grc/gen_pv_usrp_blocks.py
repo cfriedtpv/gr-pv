@@ -123,25 +123,21 @@ set_lo_export_enabled(\$lo_export$(n), uhd.ALL_LOS, $n)
 		<name>$(direction.title())put Type</name>
 		<key>type</key>
 		<type>enum</type>
-<!--
 		<option>
 			<name>Complex float32</name>
 			<key>fc32</key>
 			<opt>type:fc32</opt>
 		</option>
--->
 		<option>
 			<name>Complex int16</name>
 			<key>sc16</key>
 			<opt>type:sc16</opt>
 		</option>
-<!--
 		<option>
 			<name>VITA word32</name>
 			<key>item32</key>
 			<opt>type:s32</opt>
 		</option>
--->
 	</param>
 	<param>
 		<name>Wire Format</name>
@@ -748,72 +744,6 @@ PER_VICES_PER_CHANNEL_PARAM = """
 				none
 			\#end if
 		</hide>
-		<tab>Advanced</tab>
-	</param>
-	<param>
-		<name>Ch$(n) UFL Mode</name>
-		<key>crimson:$(trx)/\$(97+$(n))/trigger/ufl_edge_mode</key>
-		<value>False</value>
-		<type>bool</type>
-		<hide>
-			\#if not \$nchan() > $n
-				all
-			\#else
-				part
-			\#end if
-		</hide>
-		<option>
-			<name>Level</name>
-			<key>False</key>
-		</option>
-		<option>
-			<name>Edge</name>
-			<key>True</key>
-		</option>
-		<tab>Advanced</tab>
-	</param>
-	<param>
-		<name>Ch$(n) UFL Direction</name>
-		<key>crimson:$(trx)/\$(97+$(n))/trigger/ufl_edge_dir</key>
-		<value>False</value>
-		<type>bool</type>
-		<hide>
-			\#if not \$nchan() > $n
-				all
-			\#else
-				part
-			\#end if
-		</hide>
-		<option>
-			<name>Out</name>
-			<key>False</key>
-		</option>
-		<option>
-			<name>In</name>
-			<key>True</key>
-		</option>
-		<tab>Advanced</tab>
-	</param>
-	<param>
-		<name>Ch$(n) UFL Polarity</name>
-		<key>crimson:$(trx)/\$(97+$(n))/trigger/ufl_edge_pol</key>
-		<value>False</value>
-		<type>bool</type>
-		<hide>
-			\#if not \$nchan() > $n
-				all
-			\#else
-				part
-			\#end if
-		</hide>
-		<option>
-			<name>-</name>
-			<key>False</key>
-		</option>
-		<option>
-			<name>+</name>
-			<key>True</key>
-		</option>
 		<tab>Advanced</tab>
 	</param>
 #if $sourk == 'sink'
