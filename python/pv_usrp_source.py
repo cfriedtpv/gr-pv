@@ -678,7 +678,7 @@
 
 from gnuradio import uhd
 
-class pv_usrp_source( uhd.usrp_block ):
+class usrp_source( object ):
 
     def make( device_addr_strdict, stream_args ):
         return uhd.usrp_source_make( uhd.device_addr_t( device_addr_strdict ), stream_args )
