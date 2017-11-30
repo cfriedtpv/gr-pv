@@ -19,12 +19,15 @@
 # Boston, MA 02110-1301, USA.
 # 
 
+import math
+import time
+
 from gnuradio import gr, gr_unittest
 from gnuradio import blocks
 from gnuradio import uhd
+
 from crimson_sink import crimson_sink
 from crimson_source import crimson_source
-import time
 
 import numpy as np
 from scipy.signal import chirp, sweep_poly
@@ -47,7 +50,7 @@ def gen_chirp( samp_rate = 10000000, A = 32000, f0 = 200, f1 = 20000, T = 1, phi
     if samp_rate <= 0:
         raise ValueError( 'samp_rate must be positive' )
 
-    A = math.abs( A )
+    A = math.fabs( A )
 
     if f0 <= 0:
         raise ValueError( 'f0 must be positive' )
@@ -86,40 +89,47 @@ class qa_crimson_source_sink_sob (gr_unittest.TestCase):
         ##################################################
         # Variables
         ##################################################
-        sob = 5
+        sob = uhd.time_spec_t( 5 )
         samp_rate = 10e6
         freq = 2.4e9
         gain = 20
         channels = [0]
 
+        chirp_i = gen_chirp()
+        chirp_q = np.empty( chirp_i.size )
+        chirp = chirp_i + 1j * chirp_q
+
         ##################################################
         # Blocks
         ##################################################
-        csrc = uhd.usrp_source(
-                ",".join(("", "crimson:sob-host=1234")),
+        csrc = crimson_source.make(
+                #",".join(("", "crimson:sob-host=1234")),
+                ",".join(("", "")),
                 uhd.stream_args(
-                        cpu_format="sc16",
-                        otw_format='sc16',
-                        channels=( channels ),
-                ),
+                        cpu_format = "sc16",
+                        otw_format = "sc16",
+                        channels = (channels),
+                )
         )
-        csnk = uhd.usrp_sink(
-                ",".join(("", "crimson:sob-host=1234")),
+        csnk = crimson_sink.make(
+                #",".join(("", "crimson:sob-host=1234")),
+                ",".join(("", "")),
                 uhd.stream_args(
-                        cpu_format="sc16",
-                        otw_format='sc16',
-                        channels=( channels ),
-                ),
+                        cpu_format = "sc16",
+                        otw_format = "sc16",
+                        channels = (channels),
+                )
         )
 
-        for ch in channels:
-            csrc.set_samp_rate( samp_rate, ch )
-            csrc.set_center_freq( freq, channel )
-            csrc.set_gain( gain, channel )
-            csnk.set_samp_rate( samp_rate, ch )
-            csnk.set_center_freq( freq, channel )
-            csnk.set_gain( gain, channel )
+        csrc.set_samp_rate( samp_rate )
+        csnk.set_samp_rate( samp_rate )
         
+        for ch in channels:
+            csrc.set_center_freq( freq, ch )
+            csrc.set_gain( gain, ch )
+            csnk.set_center_freq( freq, ch )
+            csnk.set_gain( gain, ch )
+
         vsrc = blocks.vector_source_c( chirp )
         vsnk = blocks.vector_sink_c()
         
@@ -131,14 +141,36 @@ class qa_crimson_source_sink_sob (gr_unittest.TestCase):
         ##################################################
         self.tb.connect( ( co, 0 ), ( csnk, 0 ) )
         self.tb.connect( ( dec, 0 ), ( vsnk, 0 ) )
-        self.tb.connect( ( dec, 0 ), ( vsnk, 0 ) )
-        self.tb.connect( ( vsrc, 0 ), ( co, 0 ) )
         self.tb.connect( ( vsrc, 0 ), ( co, 0 ) )
         self.tb.connect( ( csrc, 0 ), ( dec, 0 ) )    
         
+        ##################################################
+        # Set Start of Burst
+        ##################################################
+        time_now = csnk.get_time_now()
+        
+        print( "Setting tx start time to {0}".format( (time_now + sob).get_real_secs() ) )
+        
+        csnk.set_start_time( time_now + sob )
+        #csrc.set_start_time( time_now + sob )
+        
+        print( "Setting rx start time to {0}".format( (time_now + sob).get_real_secs() ) )
+        
+        sc = uhd.stream_cmd_t( uhd.stream_cmd_t.STREAM_MODE_NUM_SAMPS_AND_DONE )
+        sc.num_samps = chirp_i.size
+        sc.stream_now = False
+        sc.time_spec = time_now + sob
+         
+        csrc.issue_stream_cmd( sc )
+        
+        ##################################################
+        # Run Flow Graph
+        ##################################################
         self.tb.run ()
         
-        # check data
+        ##################################################
+        # Verify Results
+        ##################################################
         
         expected_data = tuple( map( tuple, chirp ) )
         actual_data = vsnk.data()
