@@ -18,9 +18,12 @@
 # Boston, MA 02110-1301, USA.
 
 ########################################################################
-# Install python sources
+# Include python install macros
 ########################################################################
 include(GrPython)
+if(NOT PYTHONINTERP_FOUND)
+    return()
+endif()
 
 ########################################################################
 # Install python sources
@@ -28,8 +31,18 @@ include(GrPython)
 GR_PYTHON_INSTALL(
     FILES
     __init__.py
-    pv_usrp_sink.py
-    pv_usrp_source.py
+    pv_crimson_sink.py
+    pv_crimson_source.py
     DESTINATION ${GR_PYTHON_DIR}/gnuradio/pv
     COMPONENT "pv_python"
 )
+
+########################################################################
+# Handle the unit tests
+########################################################################
+include(GrTest)
+
+set(GR_TEST_TARGET_DEPS gnuradio-pv)
+set(GR_TEST_PYTHON_DIRS ${CMAKE_BINARY_DIR}/swig)
+GR_ADD_TEST(qa_crimson_sink ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/qa_crimson_sink.py)
+GR_ADD_TEST(qa_crimson_source ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/qa_crimson_source.py)

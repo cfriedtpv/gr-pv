@@ -21,13 +21,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
 MAIN_TMPL = """\
 <?xml version="1.0"?>
 <block>
-	<name>PV: USRP $sourk.title()</name>
-	<key>pv_usrp_$(sourk)</key>
+	<name>PV: Crimson $sourk.title()</name>
+	<key>pv_crimson_$(sourk)</key>
 	<flags>throttle</flags>
 	<import>from gnuradio import uhd</import>
 	<import>from gnuradio import pv</import>
 	<import>import time</import>
-	<make>pv.usrp_$(sourk).make(
+	<make>pv.crimson_$(sourk).make(
 	",".join((\$dev_addr, \$dev_args)),
 	uhd.stream_args(
 		cpu_format="\$type",
@@ -379,15 +379,14 @@ set_lo_export_enabled(\$lo_export$(n), uhd.ALL_LOS, $n)
 		<nports>\$nchan</nports>
 	</$sourk>
 	<doc>
-The PV USRP $sourk.title() Block:
+The PV Crimson $sourk.title() Block:
 
 Device Address:
 The device address is a delimited string used to locate UHD devices on your system. \\
 If left blank, the first UHD device found will be used. \\
 Use the device address to specify a specific device or list of devices.
-USRP1 Example: serial=12345678
-USRP2 Example: addr=192.168.10.2
-USRP2 Example: addr0=192.168.10.2, addr1=192.168.10.3
+Crimson Example: addr=192.168.10.2
+Crimson Example: addr0=192.168.10.2, addr1=192.168.10.3
 
 $(direction.title()) Type:
 This parameter controls the data type of the stream in gnuradio.
@@ -403,7 +402,7 @@ Streamer args is a list of key/value pairs; usage is determined by the implement
 Ex: the scalar key affects the scaling between 16 and 8 bit integers in sc8 wire format.
 
 Num Motherboards:
-Selects the number of USRP motherboards in this device configuration.
+Selects the number of Crimson motherboards in this device configuration.
 
 Reference Source:
 Where the motherboard should sync its time and clock references.
@@ -421,7 +420,7 @@ Single channel example: :AB
 Dual channel example: :A :B
 
 Num Channels:
-Selects the total number of channels in this multi-USRP configuration.
+Selects the total number of channels in this multi-Crimson configuration.
 Ex: 4 motherboards with 2 channels per board = 8 channels total
 
 Sample rate:
@@ -448,7 +447,7 @@ Only certain subdevices have configurable bandwidth filters. \\
 See the daughterboard application notes for possible configurations.
 
 Length tag key (Sink only):
-When a nonempty string is given, the USRP sink will look for length tags \\
+When a nonempty string is given, the Crimson sink will look for length tags \\
 to determine transmit burst lengths.
 
 See the UHD manual for more detailed documentation:

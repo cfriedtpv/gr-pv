@@ -18,18 +18,48 @@
 # Boston, MA 02110-1301, USA.
 
 ########################################################################
-# Setup dependencies
+# Check if there is C++ code at all
 ########################################################################
-find_package(Doxygen)
+if(NOT pv_sources)
+	MESSAGE(STATUS "No C++ sources... skipping swig/")
+	return()
+endif(NOT pv_sources)
 
 ########################################################################
-# Begin conditional configuration
+# Include swig generation macros
 ########################################################################
-if(ENABLE_DOXYGEN)
+find_package(SWIG)
+find_package(PythonLibs 2)
+if(NOT SWIG_FOUND OR NOT PYTHONLIBS_FOUND)
+    return()
+endif()
+include(GrSwig)
+include(GrPython)
 
 ########################################################################
-# Add subdirectories
+# Setup swig generation
 ########################################################################
-add_subdirectory(doxygen)
+foreach(incdir ${GNURADIO_RUNTIME_INCLUDE_DIRS})
+    list(APPEND GR_SWIG_INCLUDE_DIRS ${incdir}/gnuradio/swig)
+endforeach(incdir)
 
-endif(ENABLE_DOXYGEN)
+set(GR_SWIG_LIBRARIES gnuradio-pv)
+set(GR_SWIG_DOC_FILE ${CMAKE_CURRENT_BINARY_DIR}/pv_swig_doc.i)
+set(GR_SWIG_DOC_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/../include)
+
+GR_SWIG_MAKE(pv_swig pv_swig.i)
+
+########################################################################
+# Install the build swig module
+########################################################################
+GR_SWIG_INSTALL(TARGETS pv_swig DESTINATION ${GR_PYTHON_DIR}/pv)
+
+########################################################################
+# Install swig .i files for development
+########################################################################
+install(
+    FILES
+    pv_swig.i
+    ${CMAKE_CURRENT_BINARY_DIR}/pv_swig_doc.i
+    DESTINATION ${GR_INCLUDE_DIR}/pv/swig
+)
