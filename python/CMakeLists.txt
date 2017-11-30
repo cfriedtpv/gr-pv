@@ -31,8 +31,8 @@ endif()
 GR_PYTHON_INSTALL(
     FILES
     __init__.py
-    pv_crimson_sink.py
-    pv_crimson_source.py
+    crimson_sink.py
+    crimson_source.py
     DESTINATION ${GR_PYTHON_DIR}/gnuradio/pv
     COMPONENT "pv_python"
 )

@@ -678,7 +678,7 @@
 
 from gnuradio import uhd
 
-class usrp_source( object ):
+class crimson_source( object ):
 
     def __init__(self, *args, **kwargs):
         raise AttributeError("No constructor defined - class is abstract")
