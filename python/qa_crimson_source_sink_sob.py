@@ -89,7 +89,7 @@ class qa_crimson_source_sink_sob (gr_unittest.TestCase):
         ##################################################
         # Variables
         ##################################################
-        sob = uhd.time_spec_t( 5 )
+        sob = uhd.time_spec_t.get_system_time().get_real_secs() + 10
         samp_rate = 10e6
         freq = 2.4e9
         gain = 20
@@ -103,8 +103,8 @@ class qa_crimson_source_sink_sob (gr_unittest.TestCase):
         # Blocks
         ##################################################
         csrc = crimson_source.make(
-                #",".join(("", "crimson:sob-host=1234")),
-                ",".join(("", "")),
+                ",".join(("", "crimson:sob-host={0}".format( sob ))),
+#                 ",".join(("", "")),
                 uhd.stream_args(
                         cpu_format = "sc16",
                         otw_format = "sc16",
@@ -112,8 +112,8 @@ class qa_crimson_source_sink_sob (gr_unittest.TestCase):
                 )
         )
         csnk = crimson_sink.make(
-                #",".join(("", "crimson:sob-host=1234")),
-                ",".join(("", "")),
+                ",".join(("", "crimson:sob-host={0}".format( sob ))),
+#                 ",".join(("", "")),
                 uhd.stream_args(
                         cpu_format = "sc16",
                         otw_format = "sc16",
@@ -147,21 +147,21 @@ class qa_crimson_source_sink_sob (gr_unittest.TestCase):
         ##################################################
         # Set Start of Burst
         ##################################################
-        time_now = csnk.get_time_now()
         
-        print( "Setting tx start time to {0}".format( (time_now + sob).get_real_secs() ) )
+        ## XXXX BROKEN XXXX
+        # XXX: @CF: 20171130: Unfortunately, via gr-uhd, this is passed through to the
+        # multi_crimson_tng::issue_stream_cmd() which is broken!!
         
-        csnk.set_start_time( time_now + sob )
-        #csrc.set_start_time( time_now + sob )
-        
-        print( "Setting rx start time to {0}".format( (time_now + sob).get_real_secs() ) )
-        
-        sc = uhd.stream_cmd_t( uhd.stream_cmd_t.STREAM_MODE_NUM_SAMPS_AND_DONE )
-        sc.num_samps = chirp_i.size
-        sc.stream_now = False
-        sc.time_spec = time_now + sob
-         
-        csrc.issue_stream_cmd( sc )
+#         time_now = csnk.get_time_now()
+#         print( "Setting tx start time to {0}".format( (time_now + sob).get_real_secs() ) )
+#         csnk.set_start_time( time_now + sob )
+#         #csrc.set_start_time( time_now + sob )
+#         print( "Setting rx start time to {0}".format( (time_now + sob).get_real_secs() ) )
+#         sc = uhd.stream_cmd_t( uhd.stream_cmd_t.STREAM_MODE_NUM_SAMPS_AND_DONE )
+#         sc.num_samps = chirp_i.size
+#         sc.stream_now = False
+#         sc.time_spec = time_now + sob
+#         csrc.issue_stream_cmd( sc )
         
         ##################################################
         # Run Flow Graph
