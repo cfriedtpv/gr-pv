@@ -46,5 +46,4 @@ set(GR_TEST_TARGET_DEPS gnuradio-pv)
 set(GR_TEST_PYTHON_DIRS ${CMAKE_BINARY_DIR}/swig)
 GR_ADD_TEST(qa_crimson_sink ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/qa_crimson_sink.py)
 GR_ADD_TEST(qa_crimson_source ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/qa_crimson_source.py)
-#XXX: @CF: 20171201: This test will fail until our multi_crimson_tng is compatible with uhd again
-#GR_ADD_TEST(qa_crimson_source_sink_sob ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/qa_crimson_source_sink_sob.py)
+GR_ADD_TEST(qa_crimson_source_sink_sob ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/qa_crimson_source_sink_sob.py)
