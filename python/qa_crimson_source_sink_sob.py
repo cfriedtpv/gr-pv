@@ -24,6 +24,8 @@ import time
 
 import threading
 
+import matplotlib.pyplot as plt
+
 from gnuradio import gr, gr_unittest
 from gnuradio import blocks
 from gnuradio import uhd
@@ -34,7 +36,7 @@ from gnuradio import uhd
 import numpy as np
 from scipy.signal import chirp, sweep_poly
 
-def gen_chirp( samp_rate = 10000000, A = 1, f0 = 200, f1 = 20000, T = 1, phi0 = 0 ):
+def gen_chirp( samp_rate = 10000000, A = 0.1, f0 = 200, f1 = 20000, T = 1, phi0 = 0 ):
     """
 
     generate a chirp signal
@@ -69,7 +71,9 @@ def gen_chirp( samp_rate = 10000000, A = 1, f0 = 200, f1 = 20000, T = 1, phi0 = 
         raise ValueError( 'The number of samples must be positive' )
 
     t = np.linspace(0, T, N ) 
-    x = chirp( t, f0, f1, T, method='linear' )
+    x_i = A * chirp( t, f0, f1, T, method='logarithmic' )
+    x_q = 1j * x_i
+    x = x_i + x_q
 
     return x
 
@@ -98,11 +102,14 @@ class qa_crimson_source_sink_sob (gr_unittest.TestCase):
         gain = 0
         channels = [0]
         sob = 5
-        nsamples = int( samp_rate ) # 1 s worth of data
+        chirp_rate = 10
+        front_porch = 0
+        back_porch = 0
+        nseconds = 1.0
+        nsamples = int( nseconds * samp_rate )
 
-        chirp_i = gen_chirp( samp_rate )
-        chirp_q = np.empty( chirp_i.size )
-        chirp = chirp_i + 1j * chirp_q
+        chrp = gen_chirp( samp_rate = samp_rate, T = 1.0 / chirp_rate )
+        chrp = np.repeat( chrp, int( nseconds * chirp_rate ) )
 
         ##################################################
         # Blocks
@@ -123,7 +130,7 @@ class qa_crimson_source_sink_sob (gr_unittest.TestCase):
         csnk.set_center_freq( freq )
         csnk.set_gain( gain )
 
-        vsrc = blocks.vector_source_c( chirp )
+        vsrc = blocks.vector_source_c( chrp )
         vsrc.set_repeat( True )
         vsnk = blocks.vector_sink_c()
 
@@ -138,7 +145,8 @@ class qa_crimson_source_sink_sob (gr_unittest.TestCase):
         ##################################################
 
         if True:
-            time_now = uhd.time_spec_t.get_system_time()
+            #time_now = uhd.time_spec_t.get_system_time()
+            time_now = uhd.time_spec_t( 0.0 )
             csrc.set_time_now( time_now )
         else:
             time_now = csnk.get_time_now()
@@ -178,8 +186,23 @@ class qa_crimson_source_sink_sob (gr_unittest.TestCase):
         # Verify Results
         ##################################################
 
-        expected_data = tuple( chirp )
-        actual_data = vsnk.data()
+        expected_data = np.asarray( tuple( chrp ) )
+        actual_data = np.asarray( vsnk.data() )
+
+        expected_data /= np.max( np.abs( np.real( expected_data ) ), axis = 0 )
+        actual_data /= np.max( np.abs( np.real( actual_data ) ), axis = 0 )
+
+        N1 = len( expected_data )
+        N2 = len( actual_data )
+        if N1 == N2:
+            N = N1
+            t1 = start_time.get_real_secs()
+            t2 = t1 + N / samp_rate
+            t = np.arange( t1, t2, 1.0/samp_rate )
+            f1 = np.real( expected_data )
+            f2 = np.real( actual_data )
+            plt.plot( t, f1, 'b--', t, f2, 'r-' )
+            plt.show()
 
         self.assertComplexTuplesAlmostEqual2( expected_data, actual_data, 1.0/32768.0, 1.0/32768.0 );
 
