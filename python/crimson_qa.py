@@ -12,62 +12,12 @@ class base( gr_unittest.TestCase ):
     """
     __metaclass__ = ABCMeta
 
-    def common_setup( self ):
-        already = ()
+    def setUp(self):
+        self.tb = gr.top_block()
+        self.reset()
 
-        rx_channels = self.get_channels_rx()
-        tx_channels = self.get_channels_tx()
-        rx_streamers = self.get_streamers_rx()
-        tx_streamers = self.get_streamers_tx()
-
-        # first, set common properties used by all channels for a specific streamer
-        # cache the streamers that have been set
-        already = ()
-        for c in self.rx_channels:
-            rx = rx_streamers[ c ]
-            if rx in already:
-                continue
-            already.append( rx )
-            rx.set_samp_rate( rate )
-            if self.get_nsamps_rx( chan ) is None:
-                scmd = uhd.stream_cmd_t( uhd.stream_cmd_t.STREAM_MODE_START_CONTIUOUS )
-                scmd.nsamples = 0
-            else:
-                scmd = uhd.stream_cmd_t( uhd.stream_cmd_t.STREAM_MODE_NUM_SAMPS_AND_DONE )
-                scmd.nsamples = self.get_nsamps_rx( c )
-            scmd.stream_now = False
-            scmd.time_spec = uhd.time_spec_t( self.get_start_time_rx( c ) )
-            rx.issue_stream_cmd( scmd )
-        already = ()
-        for c in self.tx_channels:
-            tx = tx_streamers[ c ]
-            if tx in already:
-                continue
-            already.append( tx )
-            tx.set_samp_rate( rate )
-            tx.set_start_time( self.get_start_time_tx( c ) )
-
-        # second, set streamer properties that can still be set on a per-channel basis
-        already = ()
-        for k,rx in rx_streamers.iteritems():
-            if rx in already:
-                continue
-            already.append( rx )
-            channels = self.get_streamer_channels_rx( rx )
-            for i in range( 0, len( channels ) ):
-                rx.set_center_freq( self.get_freq_rx( channels[ i ] ), i )
-                rx.set_gain( self.get_gain_rx( channels[ i ] ), i )
-        already = ()
-        for k,tx in tx_streamers.iteritems():
-            if tx in already:
-                continue
-            already.append( tx )
-            channels = self.get_streamer_channels_tx( tx )
-            for i in range( 0, len( channels ) ):
-                tx.set_center_freq( self.get_freq_tx( channels[ i ] ), i )
-                tx.set_gain( self.get_gain_tx( channels[ i ] ), i )
-
-        self.define_flowgraph()
+    def tearDown(self):
+        self.tb = None
 
     @abstractmethod
     def __init__( self ):
@@ -337,10 +287,68 @@ class base( gr_unittest.TestCase ):
         time.sleep( delay )
         tb.stop()
 
-    def run( self, tb ):
+    def run( self ):
         killer_thread = threading.Thread( group = None, target = self.killer, name = "killer", args = ( tb, ( stop_time.get_real_secs() - start_time.get_real_secs() ), ) )
         killer_thread.start()
         tb.run()
+
+    def common_setup( self ):
+        already = ()
+
+        rx_channels = self.get_channels_rx()
+        tx_channels = self.get_channels_tx()
+        rx_streamers = self.get_streamers_rx()
+        tx_streamers = self.get_streamers_tx()
+
+        # first, set common properties used by all channels for a specific streamer
+        # cache the streamers that have been set
+        already = ()
+        for c in self.rx_channels:
+            rx = rx_streamers[ c ]
+            if rx in already:
+                continue
+            already.append( rx )
+            rx.set_samp_rate( rate )
+            if self.get_nsamps_rx( chan ) is None:
+                scmd = uhd.stream_cmd_t( uhd.stream_cmd_t.STREAM_MODE_START_CONTIUOUS )
+                scmd.nsamples = 0
+            else:
+                scmd = uhd.stream_cmd_t( uhd.stream_cmd_t.STREAM_MODE_NUM_SAMPS_AND_DONE )
+                scmd.nsamples = self.get_nsamps_rx( c )
+            scmd.stream_now = False
+            scmd.time_spec = uhd.time_spec_t( self.get_start_time_rx( c ) )
+            rx.issue_stream_cmd( scmd )
+        already = ()
+        for c in self.tx_channels:
+            tx = tx_streamers[ c ]
+            if tx in already:
+                continue
+            already.append( tx )
+            tx.set_samp_rate( rate )
+            tx.set_start_time( self.get_start_time_tx( c ) )
+
+        # second, set streamer properties that can still be set on a per-channel basis
+        already = ()
+        for k,rx in rx_streamers.iteritems():
+            if rx in already:
+                continue
+            already.append( rx )
+            channels = self.get_streamer_channels_rx( rx )
+            for i in range( 0, len( channels ) ):
+                rx.set_center_freq( self.get_freq_rx( channels[ i ] ), i )
+                rx.set_gain( self.get_gain_rx( channels[ i ] ), i )
+        already = ()
+        for k,tx in tx_streamers.iteritems():
+            if tx in already:
+                continue
+            already.append( tx )
+            channels = self.get_streamer_channels_tx( tx )
+            for i in range( 0, len( channels ) ):
+                tx.set_center_freq( self.get_freq_tx( channels[ i ] ), i )
+                tx.set_gain( self.get_gain_tx( channels[ i ] ), i )
+
+        self.define_flowgraph()
+
 
 class straight_loopback( base ):
     """An abstract class for Crimson's signal QA where TX A is wired to RX A, etc.
@@ -366,6 +374,9 @@ class straight_loopback( base ):
     def set_freq_tx( self, freq, chan = uhd.ALL_CHANS ):
         self.set_freq_rx( self, freq, chan )
 
+    def set_freq( self, freq, chan = uhd.ALL_CHANS ):
+        self.set_freq_tx( freq, chan )
+
     # TODO: @CF: 20180323: create a bunch of straight loopback tests here so that they
     # do not need to be replecated in derived classes
 
@@ -374,7 +385,8 @@ class multi_streamer_lb( straight_loopback ):
     """An abstract class for Crimson's signal QA where TX A is wired to RX A, etc.
     A given RX-TX channel pair will share the same frequency. RX channels, bzw
     TX channels may have different sample rates. The number and choices of RX channels
-    is equal to the number and choices of TX channels.
+    is equal to the number and choices of TX channels. Several underlying streamers
+    are used; one for each channel requested.
     """
 
     @abstractmethod
@@ -406,7 +418,8 @@ class single_streamer_lb( straight_loopback ):
     """An abstract class for Crimson's signal QA where TX A is wired to RX A, etc.
     A given RX-TX channel pair will share the same frequency. All RX channels, bzw
     TX channels will share a common sample rate. The number and choices of RX
-    channels is equal to the number and choices of TX channels.
+    channels is equal to the number and choices of TX channels. One underlying RX
+    and one underlying TX streamer is used for multiple channels.
     """
 
     @abstractmethod
