@@ -1,7 +1,6 @@
 import numbers
 
 from abc import abstractmethod
-from sortedcontainers import SortedSet
 
 from gnuradio import uhd
 
@@ -24,8 +23,8 @@ class base( gr_unittest.TestCase ):
         self.reset()
 
     def reset( self ):
-        self._channels_rx = SortedSet([ 0, 1, 2, 3 ])
-        self._channels_tx = SortedSet([ 0, 1, 2, 3 ])
+        self._channels_rx = [ 0, 1, 2, 3 ]
+        self._channels_tx = [ 0, 1, 2, 3 ]
 
         # TODO: @CF: 20180322: create getters and setters for _addr_rx and _addr_tx
         self._addr_rx = {}
@@ -66,7 +65,10 @@ class base( gr_unittest.TestCase ):
         for c in channels:
             if not isinstance( c, numbers.Integral ) or c < 0 or uhd.ALL_CHANS == c:
                raise ValueError( "not a valid channel {0}".format( c ) )
-        self._rx_channels = SortedSet( channels )
+        keys = {}
+        for e in channels:
+            keys[ e ] = 1
+        self._rx_channels = keys.keys()
 
     def get_channels_tx( self ):
         return self._tx_channels
@@ -75,7 +77,10 @@ class base( gr_unittest.TestCase ):
         for c in channels:
             if not isinstance( c, numbers.Integral ) or c < 0 or uhd.ALL_CHANS == c:
                raise ValueError( "not a valid channel {0}".format( c ) )
-        self._tx_channels = SortedSet( channels )
+        keys = {}
+        for e in channels:
+            keys[ e ] = 1
+        self._tx_channels = keys.keys()
 
     def get_cpu_format_rx( self, chan ):
         if chan not in self.get_channels_rx():
