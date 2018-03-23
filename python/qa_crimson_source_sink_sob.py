@@ -118,14 +118,10 @@ class qa_crimson_source_sink_sob (gr_unittest.TestCase):
         csrc = uhd.usrp_source( uhd.device_addr_t( "" ), stream_args, False )
         csnk = uhd.usrp_sink( uhd.device_addr_t( "" ), stream_args )
 
-        # issue a stop to flush out the rx channels
-        sc = uhd.stream_cmd_t( uhd.stream_cmd_t.STREAM_MODE_STOP_CONTINUOUS )
-        csrc.issue_stream_cmd( sc )
-
         csrc.set_samp_rate( samp_rate )
         csrc.set_center_freq( freq )
         csrc.set_gain( gain )
-        
+
         csnk.set_samp_rate( samp_rate )
         csnk.set_center_freq( freq )
         csnk.set_gain( gain )
