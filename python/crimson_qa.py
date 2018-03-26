@@ -1,15 +1,15 @@
 import numbers
+import threading
+import time
 
 from abc import abstractmethod
 
-from gnuradio import uhd
-
-from gnuradio import gr_unittest
+from gnuradio import gr, gr_unittest, uhd
 
 class base( gr_unittest.TestCase ):
     """Abstract base class for most of Crimson's signal QA
     """
-    __metaclass__ = ABCMeta
+    #__metaclass__ = ABCMeta
 
     def setUp(self):
         self.tb = gr.top_block()
@@ -18,13 +18,16 @@ class base( gr_unittest.TestCase ):
     def tearDown(self):
         self.tb = None
 
-    @abstractmethod
-    def __init__( self ):
-        self.reset()
-
     def reset( self ):
-        self._channels_rx = [ 0, 1, 2, 3 ]
-        self._channels_tx = [ 0, 1, 2, 3 ]
+        
+        # this variable can be altered when we have more channels to work with
+        # it's kind of arbitrary, to be honest
+        N = 4
+        
+        self._time_now = None # use Crimson's clock
+        
+        self._channels_rx = range( 0, N )
+        self._channels_tx = range( 0, N )
 
         # TODO: @CF: 20180322: create getters and setters for _addr_rx and _addr_tx
         self._addr_rx = {}
@@ -41,22 +44,31 @@ class base( gr_unittest.TestCase ):
         self._start_time_rx = {}
         self._start_time_tx = {}
         self._nsamps_rx = {}
+        self._nsamps_tx = {}
 
         self._rx_streamers = {}
         self._tx_streamers = {}
+        
+        self._streamer_channels_rx = {}
+        self._streamer_channels_tx = {}
 
-        for c in self._channels:
-            self._cpu_format_rx.update( { c, "fc32" } )
-            self._cpu_format_tx.update( { c, "fc32" } )
-            self._rate_rx.update( { c, 1e6 } )
-            self._rate_tx.update( { c, 1e6 } )
-            self._freq_rx.update( { c, 15e6 } )
-            self._freq_tx.update( { c, 15e6 } )
-            self._gain_rx.update( { c, 0.0 } )
-            self._gain_tx.update( { c, 0.0 } )
-            self._start_time_rx.update( { c, 0.0 } )
-            self._start_time_tx.update( { c, 0.0 } )
-            self._nsamps_rx.update( { c, None } )
+        #
+        # Sane Default values
+        # 
+
+        for c in range( 0, N ):
+            self._cpu_format_rx[ c ] = "fc32" 
+            self._cpu_format_tx[ c ] = "fc32" 
+            self._rate_rx[ c ] = 1e6 
+            self._rate_tx[ c ] = 1e6 
+            self._freq_rx[ c ] = 15e6 
+            self._freq_tx[ c ] = 15e6 
+            self._gain_rx[ c ] = 0.0 
+            self._gain_tx[ c ] = 0.0 
+            self._start_time_rx[ c ] = 0.0 
+            self._start_time_tx[ c ] = 0.0 
+            self._nsamps_rx[ c ] = None
+            self._nsamps_tx[ c ] = None
 
     def get_channels_rx( self ):
         return self._rx_channels
@@ -114,12 +126,12 @@ class base( gr_unittest.TestCase ):
             raise ValueError( "invalid sample format {0}".format( fmt ) )
         self._cpu_format_tx[ chan ] = fmt
 
-    def get_samp_rate_rx( self, chan ):
+    def get_rate_rx( self, chan ):
         if chan not in self.get_channels_rx():
             raise ValueError( "invalid rx channel {0}".format( chan ) )
-        return self._samp_rate_rx[ chan ]
+        return self._rate_rx[ chan ]
 
-    def set_samp_rate_rx( self, rate, chan = uhd.ALL_CHANS ):
+    def set_rate_rx( self, rate, chan = uhd.ALL_CHANS ):
         if uhd.ALL_CHANS == chan:
             for c in self.get_channels_rx():
                 base.set_rate_rx( self, rate, c )
@@ -128,14 +140,14 @@ class base( gr_unittest.TestCase ):
             raise ValueError( "invalid rx channel {0}".format( chan ) )
         if not isinstance( rate, numbers.Real ) or rate <= 0.0:
             raise ValueError( "invalid sample rate {0}".format( rate ) )
-        self._samp_rate_rx[ chan ] = rate
+        self._rate_rx[ chan ] = rate
 
-    def get_samp_rate_tx( self, chan ):
+    def get_rate_tx( self, chan ):
         if chan not in self.get_channels_tx():
             raise ValueError( "invalid tx channel {0}".format( chan ) )
-        return self._samp_rate_tx[ chan ]
+        return self._rate_tx[ chan ]
 
-    def set_samp_rate_tx( self, rate, chan = uhd.ALL_CHANS ):
+    def set_rate_tx( self, rate, chan = uhd.ALL_CHANS ):
         if uhd.ALL_CHANS == chan:
             for c in self.get_channels_tx():
                 base.set_rate_tx( self, rate, c )
@@ -144,7 +156,7 @@ class base( gr_unittest.TestCase ):
             raise ValueError( "invalid tx channel {0}".format( chan ) )
         if not isinstance( rate, numbers.Real ) or rate <= 0.0:
             raise ValueError( "invalid sample rate {0}".format( rate ) )
-        self._samp_rate_tx[ chan ] = rate
+        self._rate_tx[ chan ] = rate
 
     def get_freq_rx( self, chan ):
         if chan not in self.get_channels_rx():
@@ -260,6 +272,22 @@ class base( gr_unittest.TestCase ):
             nsamps = None
         self._nsamps_rx[ chan ] = nsamps
 
+    def set_nsamps_tx( self, nsamps, chan = uhd.ALL_CHANS ):
+        if uhd.ALL_CHANS == chan:
+            for c in self.get_channels_tx():
+                base.set_nsamps_tx( self, nsamps, c )
+            return
+        if chan not in self.get_channels_tx():
+            raise ValueError( "invalid tx channel {0}".format( chan ) )
+        if not isinstance( nsamps, numbers.Integral ) or nsamps < 0:
+            raise ValueError( "invalid nsamps {0}".format( nsamps ) )
+        if 0 == nsamps:
+            nsamps = None
+        self._nsamps_tx[ chan ] = nsamps
+
+    def set_time_now( self, time_now ):
+        self._time_now = time_now
+
     @abstractmethod
     def define_flowgraph( self ):
         pass
@@ -282,77 +310,146 @@ class base( gr_unittest.TestCase ):
 
     def get_streamer_channels_rx( self, streamer ):
         self.get_streamers_rx()
-        return self._streamer_channels_rx( streamer )
+        return self._streamer_channels_rx[ streamer ]
 
     def get_streamer_channels_tx( self, streamer ):
         self.get_streamers_tx()
-        return self._streamer_channels_tx( streamer )
+        return self._streamer_channels_tx[ streamer ]
 
-    def killer( self, tb, delay ):
+    def shutdown( self, tb, delay ):
         time.sleep( delay )
         tb.stop()
+        
+    def shutdown_delay( self ):
+        
+        d = []
+        
+        rx_streamers = self.get_streamers_rx()
+        tx_streamers = self.get_streamers_tx()
+        
+        # max of
+        #   _start_time_rx[ i ] + _nsamps_rx[ i ] / _rate_rx[ i ] + 0.1 for all channels, i
+        #   _start_time_tx[ i ] + _nsamps_tx[ i ] / _rate_tx[ i ] + 0.1 for all channels, i
+        
+        already = {}
+        for k,rx in rx_streamers.iteritems():
+            if rx in already:
+                continue
+            already[ rx ] = 1
 
-    def run( self ):
-        killer_thread = threading.Thread( group = None, target = self.killer, name = "killer", args = ( tb, ( stop_time.get_real_secs() - start_time.get_real_secs() ), ) )
-        killer_thread.start()
-        tb.run()
+            channels = self.get_streamer_channels_rx( rx )
+            # second, set streamer properties that can still be set on a per-channel basis            
+            for c in channels:
+                if self._nsamps_rx[ c ] is not None:
+                    d.append( self._start_time_rx[ c ] - self._time_now + self._nsamps_rx[ c ] / self._rate_rx[ c ] + 0.1 )
+                
+        already = {}
+        for k,tx in tx_streamers.iteritems():
+            if tx in already:
+                continue
+            already[ tx ] = 1
+
+            channels = self.get_streamer_channels_tx( tx )
+            # second, set streamer properties that can still be set on a per-channel basis            
+            for c in channels:
+                if self._nsamps_tx[ c ] is not None:
+                    d.append( self._start_time_tx[ c ] - self._time_now + self._nsamps_tx[ c ] / self._rate_tx[ c ] + 0.1 )
+        
+        d = sorted( d )
+        
+        return d[ -1 ]
+
+    def run_flowgraph_with_shutdown( self ):
+        shutdown_thread = threading.Thread( group = None, target = self.shutdown, name = "shutdown", args = ( self.tb, self.shutdown_delay(), ) )
+        shutdown_thread.start()
+        self.tb.run()
 
     def common_setup( self ):
-        already = ()
+        already = {}
 
         rx_channels = self.get_channels_rx()
         tx_channels = self.get_channels_tx()
         rx_streamers = self.get_streamers_rx()
         tx_streamers = self.get_streamers_tx()
 
-        # first, set common properties used by all channels for a specific streamer
-        # cache the streamers that have been set
-        already = ()
-        for c in self.rx_channels:
-            rx = rx_streamers[ c ]
-            if rx in already:
-                continue
-            already.append( rx )
-            rx.set_samp_rate( rate )
-            if self.get_nsamps_rx( chan ) is None:
-                scmd = uhd.stream_cmd_t( uhd.stream_cmd_t.STREAM_MODE_START_CONTIUOUS )
-                scmd.nsamples = 0
-            else:
-                scmd = uhd.stream_cmd_t( uhd.stream_cmd_t.STREAM_MODE_NUM_SAMPS_AND_DONE )
-                scmd.nsamples = self.get_nsamps_rx( c )
-            scmd.stream_now = False
-            scmd.time_spec = uhd.time_spec_t( self.get_start_time_rx( c ) )
-            rx.issue_stream_cmd( scmd )
-        already = ()
-        for c in self.tx_channels:
-            tx = tx_streamers[ c ]
-            if tx in already:
-                continue
-            already.append( tx )
-            tx.set_samp_rate( rate )
-            tx.set_start_time( self.get_start_time_tx( c ) )
+        #
+        # RX Setup
+        #
 
-        # second, set streamer properties that can still be set on a per-channel basis
-        already = ()
+        already = {}
         for k,rx in rx_streamers.iteritems():
             if rx in already:
                 continue
-            already.append( rx )
+            already[ rx ] = 1
+
             channels = self.get_streamer_channels_rx( rx )
+
+            # first, set common properties used by all channels for a specific streamer
+            rx.set_samp_rate( self.get_rate_rx( channels[ 0 ] ) )
+
+            # second, set streamer properties that can still be set on a per-channel basis            
             for i in range( 0, len( channels ) ):
                 rx.set_center_freq( self.get_freq_rx( channels[ i ] ), i )
                 rx.set_gain( self.get_gain_rx( channels[ i ] ), i )
-        already = ()
+
+        #
+        # TX Setup
+        #
+
+        already = {}
         for k,tx in tx_streamers.iteritems():
             if tx in already:
                 continue
-            already.append( tx )
+            already[ tx ] = 1
+            
             channels = self.get_streamer_channels_tx( tx )
+            
+            # first, set common properties used by all channels for a specific streamer
+            tx.set_samp_rate( self.get_rate_tx( channels[ 0 ] ) )
+            
+            # second, set streamer properties that can still be set on a per-channel basis
             for i in range( 0, len( channels ) ):
                 tx.set_center_freq( self.get_freq_tx( channels[ i ] ), i )
                 tx.set_gain( self.get_gain_tx( channels[ i ] ), i )
 
+
         self.define_flowgraph()
+        
+        #
+        # More RX Setup
+        #
+
+        already = {}
+        for k,rx in rx_streamers.iteritems():
+            if rx in already:
+                continue
+            already[ rx ] = 1
+
+            if self._time_now is not None:
+                rx.set_time_now( uhd.time_spec_t( self._time_now ) )
+            if self.get_nsamps_rx( channels[ 0 ] ) is None:
+                scmd = uhd.stream_cmd_t( uhd.stream_cmd_t.STREAM_MODE_START_CONTIUOUS )
+                scmd.num_samps = 0
+            else:
+                scmd = uhd.stream_cmd_t( uhd.stream_cmd_t.STREAM_MODE_NUM_SAMPS_AND_DONE )
+                scmd.num_samps = self.get_nsamps_rx( channels[ 0 ] )
+            scmd.stream_now = False
+            scmd.time_spec = uhd.time_spec_t( self.get_start_time_rx( channels[ 0 ] ) )
+            rx.issue_stream_cmd( scmd )
+
+        #
+        # More TX Setup
+        #
+        
+        already = {}
+        for k,tx in tx_streamers.iteritems():
+            if tx in already:
+                continue
+            already[ tx ] = 1
+
+            if self._time_now is not None:
+                tx.set_time_now( uhd.time_spec_t( self._time_now ) )
+            tx.set_start_time( uhd.time_spec_t( self.get_start_time_tx( channels[ 0 ] ) ) )            
 
 
 class straight_loopback( base ):
@@ -360,10 +457,6 @@ class straight_loopback( base ):
     A given RX-TX channel pair will share the same frequency. Derived classes may
     impose further restraints.
     """
-
-    @abstractmethod
-    def __init__( self ):
-        pass
 
     def set_channels_rx( self, channels ):
         base.set_channels_rx( self, channels )
@@ -394,18 +487,14 @@ class multi_streamer_lb( straight_loopback ):
     are used; one for each channel requested.
     """
 
-    @abstractmethod
-    def __init__( self ):
-        base.__init__( self )
-
     def get_streamers_rx( self ):
         if not self._rx_streamers:
             for c in self.get_channels_rx():
                 channels = ( c, )
                 stream_args = uhd.stream_args( cpu_format = self.get_cpu_format_rx( 0 ), otw_format = "sc16", channels = channels )
                 streamer = uhd.usrp_source( uhd.device_addr_t( "" ), stream_args, False )
-                self._rx_streamers.update( { c, streamer } )
-                self._streamer_channels_rx.update({ streamer, channels })
+                self._rx_streamers[ c ] = streamer 
+                self._streamer_channels_rx[ streamer ] = channels
         return self._rx_streamers
 
     def get_streamers_tx( self ):
@@ -413,9 +502,9 @@ class multi_streamer_lb( straight_loopback ):
             for c in self.get_channels_tx():
                 channels = ( c, )
                 stream_args = uhd.stream_args( cpu_format = self.get_cpu_format_tx( 0 ), otw_format = "sc16", channels = channels )
-                streamer = uhd.usrp_source( uhd.device_addr_t( "" ), stream_args )
+                streamer = uhd.usrp_sink( uhd.device_addr_t( "" ), stream_args )
                 self.set_tx_streamer( c, streamer )
-                self._streamer_channels_tx.update({ streamer, channels })
+                self._streamer_channels_tx[ streamer ] = channels 
         return self._tx_streamers
 
 
@@ -427,20 +516,16 @@ class single_streamer_lb( straight_loopback ):
     and one underlying TX streamer is used for multiple channels.
     """
 
-    @abstractmethod
-    def __init__( self ):
-        base.__init__( self )
-
     def set_cpu_format_rx( self, fmt, chan = uhd.ALL_CHANS ):
         straight_loopback.set_cpu_format_rx( self, fmt )
 
     def set_cpu_format_tx( self, fmt, chan = uhd.ALL_CHANS ):
         straight_loopback.set_cpu_format_tx( self, fmt )
 
-    def set_samp_rate_rx( self, rate, chan = uhd.ALL_CHANS ):
+    def set_rate_rx( self, rate, chan = uhd.ALL_CHANS ):
         straight_loopback.set_rate_rx( self, rate )
 
-    def set_samp_rate_tx( self, rate, chan = uhd.ALL_CHANS ):
+    def set_rate_tx( self, rate, chan = uhd.ALL_CHANS ):
         straight_loopback.set_rate_tx( self, rate )
 
     def set_start_time_rx( self, start_time, chan = uhd.ALL_CHANS ):
@@ -452,22 +537,25 @@ class single_streamer_lb( straight_loopback ):
     def set_nsamps_rx( self, nsamps, chan = uhd.ALL_CHANS ):
         straight_loopback.set_nsamps_rx( self, nsamps )
 
+    def set_nsamps_tx( self, nsamps, chan = uhd.ALL_CHANS ):
+        straight_loopback.set_nsamps_tx( self, nsamps )
+
     def get_streamers_rx( self ):
         if not self._rx_streamers:
             channels = self.get_channels_rx()
-            stream_args = uhd.stream_args( cpu_format = self.get_cpu_format_rx( 0 ), otw_format = "sc16", channels = channels )
+            stream_args = uhd.stream_args( cpu_format = self.get_cpu_format_rx( channels[ 0 ] ), otw_format = "sc16", channels = channels )
             streamer = uhd.usrp_source( uhd.device_addr_t( "" ), stream_args, False )
-            self._streamer_channels_rx.update({ streamer, channels })
+            self._streamer_channels_rx[ streamer ] = channels
             for c in channels:
-                self._rx_streamers.update( { c, streamer } )
+                self._rx_streamers[ c ] = streamer 
         return self._rx_streamers
 
     def get_streamers_tx( self ):
         if not self._tx_streamers:
             channels = self.get_channels_tx()
-            stream_args = uhd.stream_args( cpu_format = self.get_cpu_format_tx( 0 ), otw_format = "sc16", channels = channels )
-            streamer = uhd.usrp_source( uhd.device_addr_t( "" ), stream_args )
-            self._streamer_channels_tx.update({ streamer, channels })
+            stream_args = uhd.stream_args( cpu_format = self.get_cpu_format_tx( channels[ 0 ] ), otw_format = "sc16", channels = channels )
+            streamer = uhd.usrp_sink( uhd.device_addr_t( "" ), stream_args )
+            self._streamer_channels_tx[ streamer ] = channels
             for c in channels:
-                self._tx_streamers.update( { c, streamer } )
+                self._tx_streamers[ c ] = streamer 
         return self._tx_streamers
