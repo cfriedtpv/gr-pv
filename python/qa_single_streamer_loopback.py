@@ -78,7 +78,7 @@ def gen_chirp( samp_rate = 10000000, A = 0.1, f0 = 200, f1 = 20000, T = 1, phi0 
 
     return x
 
-class qa_blah( single_streamer_lb ):
+class qa_single_streamer_loopback( single_streamer_lb ):
 
     def define_flowgraph( self ):
         ##################################################
