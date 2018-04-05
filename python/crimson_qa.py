@@ -23,7 +23,7 @@ class base( gr_unittest.TestCase ):
     def reset( self ):
 
         self._debug = False
-        
+
         # this variable can be altered when we have more channels to work with
         # it's kind of arbitrary, to be honest
         N = 4
@@ -78,16 +78,16 @@ class base( gr_unittest.TestCase ):
 
     def D( self, x ):
         if self._debug:
-#             if not self._rx_streamers and not self._tx_streamers :
-#                 t = time.time()
-#             else:
-#                 if self._rx_streamers:
-#                     streamers = self._rx_streamers
-#                 else:
-#                     streamers = self._tx_streamers
-#                 first = streamers[ 0 ]
-#                 t = first.get_time_now().get_real_secs()
-            t = time.time()
+            if not self._rx_streamers and not self._tx_streamers :
+                t = time.time()
+            else:
+                if self._rx_streamers:
+                    streamers = self._rx_streamers
+                else:
+                    streamers = self._tx_streamers
+                first = streamers[ 0 ]
+                t = first.get_time_now().get_real_secs()
+            #t = time.time()
             print( "{0}: {1}".format( t, x ) )
 
     def set_debug( self, en ):
@@ -379,7 +379,7 @@ class base( gr_unittest.TestCase ):
         delay = d[ -1 ] + 3.0
 
         self.D( "shutdown delay is {0}".format( delay ) )
-        
+
         return delay
 
     def shutdown( self, tb, delay ):
@@ -411,6 +411,7 @@ class base( gr_unittest.TestCase ):
         already = {}
         for k,rx in rx_streamers.iteritems():
             if rx in already:
+                self.D( "skipping rx {0}".format( rx ) )
                 continue
             already[ rx ] = 1
 
@@ -444,16 +445,20 @@ class base( gr_unittest.TestCase ):
         # TX Setup
         #
 
+        print( "len( tx_streamers ): {0}".format( len( tx_streamers ) ) )
+
         already = {}
         for k,tx in tx_streamers.iteritems():
             if tx in already:
+                self.D( "skipping tx {0}".format( tx ) )
                 continue
             already[ tx ] = 1
 
             channels = self.get_streamer_channels_tx( tx )
 
             # first, set common properties used by all channels for a specific streamer
-            if self.get_rate_tx( channels[ 0 ] ) != tx.get_samp_rate():
+            #if self.get_rate_tx( channels[ 0 ] ) != tx.get_samp_rate():
+            if True:
                 self.D( "setting sample rate for tx streamer {0} to {1}".format( k, self.get_rate_tx( channels[ 0 ] ) ) )
                 tx.set_samp_rate( self.get_rate_tx( channels[ 0 ] ) )
                 sr = tx.get_samp_rate()
@@ -464,17 +469,19 @@ class base( gr_unittest.TestCase ):
 
             # second, set streamer properties that can still be set on a per-channel basis
             for i in range( 0, len( channels ) ):
-                if self.get_freq_tx( channels[ i ] ) != tx.get_center_freq( channels[ i ] ):
+                #if self.get_freq_tx( channels[ i ] ) != tx.get_center_freq( channels[ i ] ):
+                if True:
                     #self.D( "center freq on channel {0} is currently {1}".format( chr( ord( 'A' ) + channels[ i ] ), tx.get_center_freq( channels[ i ] ) ) )
-                    self.D( "setting center freq for tx channel {0} to {1}".format( k, chr( ord( 'A' ) + channels[ i ] ), self.get_freq_tx( channels[ i ] ) ) )
+                    self.D( "setting center freq for tx channel {0} to {1}".format( chr( ord( 'A' ) + channels[ i ] ), self.get_freq_tx( channels[ i ] ) ) )
                     tx.set_center_freq( self.get_freq_tx( channels[ i ] ), i )
                     fc = tx.get_center_freq( channels[ i ] )
                     if self.get_freq_tx( channels[ i ] ) != fc:
                         self.D( "storing corrected center freq for tx channel {0} of {1}".format(  chr( ord( 'A' ) + channels[ i ] ), fc ) )
                         self.set_freq_tx( fc, channels[ i ] )
-                if self.get_gain_tx( channels[ i ] ) != tx.get_gain( channels[ i ] ):
+                #if self.get_gain_tx( channels[ i ] ) != tx.get_gain( channels[ i ] ):
+                if True:
+                    self.D( "setting gain for tx channel {0} to {1}".format( chr( ord( 'A' ) + channels[ i ] ), self.get_gain_tx( channels[ i ] ) ) )
                     tx.set_gain( self.get_gain_tx( channels[ i ] ), i )
-                    self.D( "setting gain for tx channel {0} to {1}".format( k, chr( ord( 'A' ) + channels[ i ] ), self.get_gain_tx( channels[ i ] ) ) )
 
 
         if not self._flowgraph_defined:
@@ -526,9 +533,9 @@ class base( gr_unittest.TestCase ):
             # as a work-around for multiply setting "time now" on one crimson, this is commented out
             # *** NON-LOOPBACK TESTS WILL FAIL UNTIL THIS IS FIXED ***
 
-            #if self._time_now is not None:
-            #    self.D( "setting tx streamer {0} time spec to {1}".format( k, self._time_now ) )
-            #    tx.set_time_now( uhd.time_spec_t( self._time_now ) )
+#             if self._time_now is not None:
+#                 self.D( "setting tx streamer {0} time spec to {1}".format( k, self._time_now ) )
+#                 tx.set_time_now( uhd.time_spec_t( self._time_now ) )
 
             self.D( "setting tx streamer {0} start time to {1}".format( k, self.get_start_time_tx( channels[ 0 ] ) ) )
             tx.set_start_time( uhd.time_spec_t( self.get_start_time_tx( channels[ 0 ] ) ) )

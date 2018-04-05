@@ -49,16 +49,16 @@ class qa_loopback_rx_phase( single_streamer_lb ):
             snk.reset()
 
     def define_flowgraph( self ):
-        
+
         self._flowgraph_defined = True
-        
+
         ##################################################
         # Blocks
         ##################################################
 
         channels = self.get_channels_rx() # rx_channels == tx_channels for straight loopback configuration
-        
-        self.D( "getting rx streamers.." ) 
+
+        self.D( "getting rx streamers.." )
         rx_streamers = self.get_streamers_rx()
         self.D( "getting tx streamers.." )
         tx_streamers = self.get_streamers_tx()
@@ -93,19 +93,19 @@ class qa_loopback_rx_phase( single_streamer_lb ):
             for j in np.arange( 0, len( channels ) ):
                 self.D( "connecting cosine signal source for TX streamer {0}, channel {1} ".format( i, chr( ord( 'A' ) + channels[ j ] ) ) )
                 self._tb.connect( ( src, 0 ), ( tx, j ) )
-        
-        self.D( "flowgraph defined!" )            
+
+        self.D( "flowgraph defined!" )
 
     def test_000_rx_phase( self ):
         ##################################################
         # Variables
         ##################################################
-        
+
         self.set_debug( True )
-        
+
         time_now = uhd.time_spec_t( 0.0 )
         self.set_time_now( time_now.get_real_secs() )
-        
+
         samp_rate = 1e6
         channels = [0,1,2,3]
         sob = 8
@@ -132,10 +132,10 @@ class qa_loopback_rx_phase( single_streamer_lb ):
             self.D( "{0}BEGINNING TRIAL {1}".format( 30 * ' ', trial ) )
             self.D( 80 * '#' )
 
-            self.common_setup()            
+            self.common_setup()
             self.run_flowgraph_with_shutdown()
-                
-        
+
+
             #expected_data = np.asarray( tuple( chrp ) )
             f = {}
             for c in channels:
@@ -145,30 +145,29 @@ class qa_loopback_rx_phase( single_streamer_lb ):
                 else:
                     f[ c ] /= np.max( np.abs( f[ c ] ) )
                     self.vsnk[ c ].reset()
-              
+
             for i in range( 0, len( channels ) - 1 ):
                 if 0 != len( f[ i + 1 ] ) and 0 != len( f[ 0 ] ) :
-                    phi[ trial, i ] = np.mean( np.arctan2( f[ i + 1 ], f[ 0 ] ) * 180 / np.pi )            
+                    phi[ trial, i ] = np.mean( np.arctan2( f[ i + 1 ], f[ 0 ] ) * 180 / np.pi )
 
             trial_stop = time.time()
             self.D( "trial {0} took {1} s".format( trial, trial_stop - trial_start ) )
-            
+
         ##################################################
         # Verify Results
         ##################################################
-    
+
 
 #         plt.figure( 1 )
 #         plt.plot( t, f[ 0 ], 'r', t, f[ 1 ], 'y', t, f[ 2 ], 'g', t, f[ 3 ], 'b'  )
 #         plt.show()
-# 
+#
 #         plt.figure( 2 )
 #         plt.plot( t, phi[ 1 ], 'y', t, phi[ 2 ], 'g', t, phi[ 3 ], 'b' )
 #         plt.show()
 
         self.D( "done!" )
         #self.assertEqual( len( expected_data ), len( actual_data[ 0 ] ) )
-        #XXX: @CF: This fails due to a feature missing from the fpga
         #self.assertComplexTuplesAlmostEqual2( expected_data, actual_data, 1.0/32768.0, 1.0/32768.0 );
 
 if __name__ == '__main__':
