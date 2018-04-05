@@ -100,9 +100,8 @@ class qa_single_streamer_loopback( single_streamer_lb ):
         tx_streamers = self.get_streamers_tx()
 
         #vsrc = analog.sig_source_c( self.get_rate_tx( channels[ 0 ] ), analog.GR_COS_WAVE, 1e6, 0.01 )
-
         vsrc = blocks.vector_source_c( self.chrp )
-        vsrc.set_repeat( True )
+        vsrc.set_repeat( False )
 
         ##################################################
         # Connections

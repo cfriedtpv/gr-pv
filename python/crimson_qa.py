@@ -445,8 +445,6 @@ class base( gr_unittest.TestCase ):
         # TX Setup
         #
 
-        print( "len( tx_streamers ): {0}".format( len( tx_streamers ) ) )
-
         already = {}
         for k,tx in tx_streamers.iteritems():
             if tx in already:
