@@ -418,7 +418,8 @@ class base( gr_unittest.TestCase ):
             channels = self.get_streamer_channels_rx( rx )
 
             # first, set common properties used by all channels for a specific streamer
-            if self.get_rate_rx( channels[ 0 ] ) != rx.get_samp_rate():
+            #if self.get_rate_rx( channels[ 0 ] ) != rx.get_samp_rate():
+            if True:
                 self.D( "setting sample rate for rx streamer {0} to {1}".format( k, self.get_rate_rx( channels[ 0 ] ) ) )
                 rx.set_samp_rate( self.get_rate_rx( channels[ 0 ] ) )
                 sr = rx.get_samp_rate()
@@ -429,7 +430,8 @@ class base( gr_unittest.TestCase ):
 
             # second, set streamer properties that can still be set on a per-channel basis
             for i in range( 0, len( channels ) ):
-                if self.get_freq_rx( channels[ i ] ) != rx.get_center_freq( channels[ i ] ):
+                #if self.get_freq_rx( channels[ i ] ) != rx.get_center_freq( channels[ i ] ):
+                if True:
                     #self.D( "center freq on channel {0} is currently {1}".format( chr( ord( 'A' ) + channels[ i ] ), rx.get_center_freq( channels[ i ] ) ) )
                     self.D( "setting center freq for rx channel {0} to {1}".format( chr( ord( 'A' ) + channels[ i ] ), self.get_freq_rx( channels[ i ] ) ) )
                     rx.set_center_freq( self.get_freq_rx( channels[ i ] ), i )
@@ -561,7 +563,7 @@ class straight_loopback( base ):
         base.set_freq_tx( self, freq, chan )
 
     def set_freq_tx( self, freq, chan = uhd.ALL_CHANS ):
-        self.set_freq_rx( self, freq, chan )
+        self.set_freq_rx( freq, chan )
 
     def set_freq( self, freq, chan = uhd.ALL_CHANS ):
         self.set_freq_tx( freq, chan )

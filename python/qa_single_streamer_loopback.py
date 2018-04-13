@@ -38,7 +38,7 @@ from crimson_qa import single_streamer_lb
 #from crimson_source import crimson_source
 
 import numpy as np
-from scipy.signal import chirp, sweep_poly
+from scipy.signal import chirp, sweep_poly, correlate
 
 def gen_chirp( samp_rate = 10000000, A = 0.1, f0 = 200, f1 = 20000, T = 1, phi0 = 0 ):
     """
@@ -117,10 +117,6 @@ class qa_single_streamer_loopback( single_streamer_lb ):
 
         self.set_debug( True )
 
-        time_now = uhd.time_spec_t( 0.0 )
-        #time_now = uhd.time_spec_t( time.time() )
-        self.set_time_now( time_now.get_real_secs() )
-
         samp_rate = 1e6
         channels = [0]
         sob = 5
@@ -135,12 +131,17 @@ class qa_single_streamer_loopback( single_streamer_lb ):
         self.set_channels_tx( channels ) # parent class crimson_qa.straight_loopback sets this for both tx and rx
         self.set_rate_rx( samp_rate )
         self.set_rate_tx( samp_rate )
+
+        time_now = uhd.time_spec_t( 0.0 )
+        #time_now = uhd.time_spec_t( time.time() )
+        self.set_time_now( time_now.get_real_secs() )
         self.set_start_time_rx( time_now.get_real_secs() + sob )
-        self.set_start_time_tx( time_now.get_real_secs() + sob )
         self.set_nsamps_rx( nsamples )
+        self.set_start_time_tx( time_now.get_real_secs() + sob )
         self.set_nsamps_tx( nsamples )
 
-        self.common_setup()
+
+        self.common_setup() #Takes ~5s
 
         self.run_flowgraph_with_shutdown()
 
@@ -156,6 +157,7 @@ class qa_single_streamer_loopback( single_streamer_lb ):
 
         print( "N1: {0} N2: {1}".format( N1, N2 ) )
 
+        self.assertEqual( N1, N2 )
         if N1 == N2:
 
             expected_data /= np.max( np.abs( expected_data ), axis = 0 )
@@ -166,14 +168,24 @@ class qa_single_streamer_loopback( single_streamer_lb ):
             t2 = t1 + N / samp_rate
             t = np.arange( t1, t2, 1.0/samp_rate )
             f1 = np.real( expected_data )
-            f2 = np.real( actual_data )
+            f2 = np.imag( expected_data )
+            f3 = np.real( actual_data )
+            f4 = np.imag( actual_data )
+            corr = correlate( expected_data, actual_data, mode = 'same' );
+            # max correlation is 1/2 of the vector length, so we normalize it to that
+            corr /= len( corr )/2
+            print( "peak cross-correlation is {0}".format( max( abs( corr ) ) ) )
+
+            f5 = np.real( corr )
+            f6 = np.imag( corr )
 
             mpl.rcParams['agg.path.chunksize'] = 10000
-
-            plt.plot( t, f1, 'b--', t, f2, 'r-' )
+            #plt.plot( t, f1, 'y--', t, f2, 'm--', t, f3, 'c', t, f4, 'r', t, f5, 'g', t, f6, 'b' )
+            plt.plot( t, f1, 'b--', t, f3, 'r', t, f5, 'g' )
             plt.show()
 
-        self.assertEqual( len( expected_data ), len( actual_data ) )
+            self.assertGreaterEqual( max( abs( corr ) ), 0.95 )
+
         #self.assertComplexTuplesAlmostEqual2( expected_data, actual_data, 1.0/32768.0, 1.0/32768.0 );
 
 if __name__ == '__main__':
