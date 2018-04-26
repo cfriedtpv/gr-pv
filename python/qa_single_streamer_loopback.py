@@ -24,9 +24,11 @@ import time
 
 import threading
 
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from gnuradio import gr, gr_unittest
+from gnuradio import analog
 from gnuradio import blocks
 from gnuradio import uhd
 
@@ -36,7 +38,7 @@ from crimson_qa import single_streamer_lb
 #from crimson_source import crimson_source
 
 import numpy as np
-from scipy.signal import chirp, sweep_poly
+from scipy.signal import chirp, sweep_poly, correlate
 
 def gen_chirp( samp_rate = 10000000, A = 0.1, f0 = 200, f1 = 20000, T = 1, phi0 = 0 ):
     """
@@ -71,46 +73,53 @@ def gen_chirp( samp_rate = 10000000, A = 0.1, f0 = 200, f1 = 20000, T = 1, phi0 
     if N <= 0:
         raise ValueError( 'The number of samples must be positive' )
 
-    t = np.linspace(0, T, N ) 
+    t = np.linspace(0, T, N )
     x_i = A * chirp( t, f0, f1, T, method='logarithmic' )
     x_q = 1j * x_i
     x = x_i + x_q
 
     return x
 
-class qa_blah( single_streamer_lb ):
+class qa_single_streamer_loopback( single_streamer_lb ):
+
+    def setUp( self ):
+        single_streamer_lb.setUp( self )
+        self.vsnk = blocks.vector_sink_c()
+
+    def tearDown( self ):
+        single_streamer_lb.tearDown( self )
+        self.vsnk.reset()
 
     def define_flowgraph( self ):
         ##################################################
         # Blocks
         ##################################################
 
-        channels = self.get_channels_rx() # rx_channels == tx_channels for straight loopback configuration 
+        channels = self.get_channels_rx() # rx_channels == tx_channels for straight loopback configuration
         rx_streamers = self.get_streamers_rx()
         tx_streamers = self.get_streamers_tx()
 
+        #vsrc = analog.sig_source_c( self.get_rate_tx( channels[ 0 ] ), analog.GR_COS_WAVE, 1e6, 0.01 )
         vsrc = blocks.vector_source_c( self.chrp )
         vsrc.set_repeat( False )
-        self.vsnk = blocks.vector_sink_c()
 
         ##################################################
         # Connections
         ##################################################
         for i in range( 0, len( channels ) ):
-            self.tb.connect( ( vsrc, i ), ( tx_streamers[ channels[ i ] ], i ) )
-            self.tb.connect( ( rx_streamers[ channels[ i ] ], i ), ( self.vsnk, i ) )
+            self._tb.connect( ( vsrc, i ), ( tx_streamers[ channels[ i ] ], i ) )
+            self._tb.connect( ( rx_streamers[ channels[ i ] ], i ), ( self.vsnk, i ) )
 
     def test_000_num_samps_and_done_with_1s_sob_ch_a( self ):
         ##################################################
         # Variables
         ##################################################
-        
-        time_now = uhd.time_spec_t( 0.0 )
-        self.set_time_now( time_now.get_real_secs() )
-        
+
+        self.set_debug( True )
+
         samp_rate = 1e6
         channels = [0]
-        sob = 1
+        sob = 5
         chirp_rate = 10
         nseconds = 1.0
         nsamples = int( nseconds * samp_rate )
@@ -122,96 +131,61 @@ class qa_blah( single_streamer_lb ):
         self.set_channels_tx( channels ) # parent class crimson_qa.straight_loopback sets this for both tx and rx
         self.set_rate_rx( samp_rate )
         self.set_rate_tx( samp_rate )
-        self.set_start_time_rx( time_now.get_real_secs() + sob )
-        self.set_start_time_tx( time_now.get_real_secs() + sob )
-        self.set_nsamps_rx( nsamples )
-        self.set_nsamps_tx( nsamples )
 
-        self.common_setup()
-        
-        self.run_flowgraph_with_shutdown()
-    
-        ##################################################
-        # Verify Results
-        ##################################################
-
-        expected_data = np.asarray( tuple( chrp ) )
-        actual_data = np.asarray( self.vsnk.data() )
-
-        expected_data /= np.max( np.abs( np.real( expected_data ) ), axis = 0 )
-        actual_data /= np.max( np.abs( np.real( actual_data ) ), axis = 0 )
-
-#         N1 = len( expected_data )
-#         N2 = len( actual_data )
-#         if N1 == N2:
-#             N = N1
-#             t1 = time_now.get_real_secs() + sob
-#             t2 = t1 + N / samp_rate
-#             t = np.arange( t1, t2, 1.0/samp_rate )
-#             f1 = np.real( expected_data )
-#             f2 = np.real( actual_data )
-#             plt.plot( t, f1, 'b--', t, f2, 'r-' )
-#             plt.show()
-
-        self.assertEqual( len( expected_data ), len( actual_data ) )
-        #XXX: @CF: This fails due to a feature missing from the fpga
-        #self.assertComplexTuplesAlmostEqual2( expected_data, actual_data, 1.0/32768.0, 1.0/32768.0 );
-
-    def test_001_num_samps_and_done_with_1s_sob_ch_b( self ):
-        ##################################################
-        # Variables
-        ##################################################
-        
         time_now = uhd.time_spec_t( 0.0 )
+        #time_now = uhd.time_spec_t( time.time() )
         self.set_time_now( time_now.get_real_secs() )
-        
-        samp_rate = 1e6
-        channels = [1]
-        sob = 1
-        chirp_rate = 10
-        nseconds = 1.0
-        nsamples = int( nseconds * samp_rate )
-
-        chrp = gen_chirp( samp_rate = samp_rate, T = 1.0 / chirp_rate )
-        chrp = np.repeat( chrp, int( nseconds * chirp_rate ) )
-        self.chrp = chrp
-
-        self.set_channels_tx( channels ) # parent class crimson_qa.straight_loopback sets this for both tx and rx
-        self.set_rate_rx( samp_rate )
-        self.set_rate_tx( samp_rate )
         self.set_start_time_rx( time_now.get_real_secs() + sob )
-        self.set_start_time_tx( time_now.get_real_secs() + sob )
         self.set_nsamps_rx( nsamples )
+        self.set_start_time_tx( time_now.get_real_secs() + sob )
         self.set_nsamps_tx( nsamples )
 
-        self.common_setup()
-        
+
+        self.common_setup() #Takes ~5s
+
         self.run_flowgraph_with_shutdown()
-    
+
         ##################################################
         # Verify Results
         ##################################################
 
-        expected_data = np.asarray( tuple( chrp ) )
-        actual_data = np.asarray( self.vsnk.data() )
+        expected_data = np.real( np.asarray( tuple( chrp ) ) )
+        actual_data = np.real( np.asarray( self.vsnk.data() ) )
 
-        expected_data /= np.max( np.abs( np.real( expected_data ) ), axis = 0 )
-        actual_data /= np.max( np.abs( np.real( actual_data ) ), axis = 0 )
+        N1 = len( expected_data )
+        N2 = len( actual_data )
 
-#         N1 = len( expected_data )
-#         N2 = len( actual_data )
-#         if N1 == N2:
-#             N = N1
-#             t1 = time_now.get_real_secs() + sob
-#             t2 = t1 + N / samp_rate
-#             t = np.arange( t1, t2, 1.0/samp_rate )
-#             f1 = np.real( expected_data )
-#             f2 = np.real( actual_data )
-#             plt.plot( t, f1, 'b--', t, f2, 'r-' )
-#             plt.show()
+        print( "N1: {0} N2: {1}".format( N1, N2 ) )
 
-        self.assertEqual( len( expected_data ), len( actual_data ) )
-        #XXX: @CF: This fails due to a feature missing from the fpga
+        self.assertEqual( N1, N2 )
+        if N1 == N2:
+
+            expected_data /= np.max( np.abs( expected_data ), axis = 0 )
+            actual_data /= np.max( np.abs( actual_data ), axis = 0 )
+
+            N = N1
+            t1 = time_now.get_real_secs() + sob
+            t2 = t1 + N / samp_rate
+            t = np.arange( t1, t2, 1.0/samp_rate )
+            f1 = np.real( expected_data )
+            f2 = np.imag( expected_data )
+            f3 = np.real( actual_data )
+            f4 = np.imag( actual_data )
+            corr = correlate( expected_data, actual_data, mode = 'same' );
+            # max correlation is 1/2 of the vector length, so we normalize it to that
+            corr /= len( corr )/2
+            print( "peak cross-correlation is {0}".format( max( abs( corr ) ) ) )
+
+            f5 = np.real( corr )
+            f6 = np.imag( corr )
+
+            mpl.rcParams['agg.path.chunksize'] = 10000
+            #plt.plot( t, f1, 'y--', t, f2, 'm--', t, f3, 'c', t, f4, 'r', t, f5, 'g', t, f6, 'b' )
+            plt.plot( t, f1, 'b--', t, f3, 'r', t, f5, 'g' )
+            plt.show()
+
+            self.assertGreaterEqual( max( abs( corr ) ), 0.95 )
+
         #self.assertComplexTuplesAlmostEqual2( expected_data, actual_data, 1.0/32768.0, 1.0/32768.0 );
 
 if __name__ == '__main__':
