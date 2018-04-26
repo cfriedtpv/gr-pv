@@ -678,7 +678,7 @@
 
 from gnuradio import uhd
 
-class usrp_sink( object ):
+class crimson_sink( object ):
 
     def __init__(self, *args, **kwargs):
         raise AttributeError("No constructor defined - class is abstract")

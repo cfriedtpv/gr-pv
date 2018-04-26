@@ -8,7 +8,7 @@
 	<name>[Core]</name> <!-- Blank for Root Name -->
 	<cat>
 		<name>Per Vices</name>
-		<block>pv_usrp_source</block>
-		<block>pv_usrp_sink</block>
+		<block>pv_crimson_source</block>
+		<block>pv_crimson_sink</block>
 	</cat>
 </cat>

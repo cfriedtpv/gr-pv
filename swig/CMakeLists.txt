@@ -18,31 +18,48 @@
 # Boston, MA 02110-1301, USA.
 
 ########################################################################
-# Include python install macros
+# Check if there is C++ code at all
 ########################################################################
-include(GrPython)
-if(NOT PYTHONINTERP_FOUND)
+if(NOT pv_sources)
+	MESSAGE(STATUS "No C++ sources... skipping swig/")
+	return()
+endif(NOT pv_sources)
+
+########################################################################
+# Include swig generation macros
+########################################################################
+find_package(SWIG)
+find_package(PythonLibs 2)
+if(NOT SWIG_FOUND OR NOT PYTHONLIBS_FOUND)
     return()
 endif()
+include(GrSwig)
+include(GrPython)
 
 ########################################################################
-# Install python sources
+# Setup swig generation
 ########################################################################
-GR_PYTHON_INSTALL(
+foreach(incdir ${GNURADIO_RUNTIME_INCLUDE_DIRS})
+    list(APPEND GR_SWIG_INCLUDE_DIRS ${incdir}/gnuradio/swig)
+endforeach(incdir)
+
+set(GR_SWIG_LIBRARIES gnuradio-pv)
+set(GR_SWIG_DOC_FILE ${CMAKE_CURRENT_BINARY_DIR}/pv_swig_doc.i)
+set(GR_SWIG_DOC_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/../include)
+
+GR_SWIG_MAKE(pv_swig pv_swig.i)
+
+########################################################################
+# Install the build swig module
+########################################################################
+GR_SWIG_INSTALL(TARGETS pv_swig DESTINATION ${GR_PYTHON_DIR}/pv)
+
+########################################################################
+# Install swig .i files for development
+########################################################################
+install(
     FILES
-    __init__.py
-    crimson_sink.py
-    crimson_source.py
-    DESTINATION ${GR_PYTHON_DIR}/gnuradio/pv
-    COMPONENT "pv_python"
+    pv_swig.i
+    ${CMAKE_CURRENT_BINARY_DIR}/pv_swig_doc.i
+    DESTINATION ${GR_INCLUDE_DIR}/pv/swig
 )
-
-########################################################################
-# Handle the unit tests
-########################################################################
-include(GrTest)
-
-set(GR_TEST_TARGET_DEPS gnuradio-pv)
-set(GR_TEST_PYTHON_DIRS ${CMAKE_BINARY_DIR}/swig)
-GR_ADD_TEST(qa_crimson_sink ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/qa_crimson_sink.py)
-GR_ADD_TEST(qa_crimson_source ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/qa_crimson_source.py)
