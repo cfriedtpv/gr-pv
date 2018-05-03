@@ -40,7 +40,7 @@ from crimson_qa import single_streamer_lb
 import numpy as np
 from scipy.signal import chirp, sweep_poly, correlate
 
-def gen_chirp( samp_rate = 10000000, A = 0.1, f0 = 200, f1 = 20000, T = 1, phi0 = 0 ):
+def gen_chirp( samp_rate = 1000000, A = 0.1, f0 = 100, f1 = 20000, T = 10, phi0 = 20 ):
     """
     generate a chirp signal
 
@@ -74,10 +74,9 @@ def gen_chirp( samp_rate = 10000000, A = 0.1, f0 = 200, f1 = 20000, T = 1, phi0 
         raise ValueError( 'The number of samples must be positive' )
 
     t = np.linspace(0, T, N )
-    x_i = A * chirp( t, f0, f1, T, method='logarithmic' )
+    x_i = A * chirp( t, f0, f1, T, method='logarithmic',phi = phi0 )
     x_q = 1j * x_i
     x = x_i + x_q
-
     return x
 
 class qa_single_streamer_loopback( single_streamer_lb ):
@@ -119,12 +118,21 @@ class qa_single_streamer_loopback( single_streamer_lb ):
 
         samp_rate = 1e6
         channels = [0]
-        sob = 5
+        sob = 2
         chirp_rate = 10
-        nseconds = 1.0
+        nseconds = 2.0
+        tx_latency=0.000;
+        rx_latency=0.0200;
+	tx_offset=0;
+	rx_offset=0;
+        
+        if(tx_latency > rx_latency):
+		rx_offset=tx_latency-rx_latency;
+	if(rx_latency > tx_latency):
+		tx_offset=rx_latency-tx_latency;
         nsamples = int( nseconds * samp_rate )
 
-        chrp = gen_chirp( samp_rate = samp_rate, T = 1.0 / chirp_rate )
+        chrp = gen_chirp( samp_rate = samp_rate, T = 1.0 / chirp_rate, phi0 = 0 )
         chrp = np.repeat( chrp, int( nseconds * chirp_rate ) )
         self.chrp = chrp
 
@@ -135,22 +143,32 @@ class qa_single_streamer_loopback( single_streamer_lb ):
         time_now = uhd.time_spec_t( 0.0 )
         #time_now = uhd.time_spec_t( time.time() )
         self.set_time_now( time_now.get_real_secs() )
-        self.set_start_time_rx( time_now.get_real_secs() + sob )
+        self.set_start_time_rx( time_now.get_real_secs() + sob + rx_offset)
         self.set_nsamps_rx( nsamples )
-        self.set_start_time_tx( time_now.get_real_secs() + sob )
+        self.set_start_time_tx( time_now.get_real_secs() + sob + tx_offset)
         self.set_nsamps_tx( nsamples )
 
 
         self.common_setup() #Takes ~5s
-
+	print("Running flowgraph");
         self.run_flowgraph_with_shutdown()
 
         ##################################################
         # Verify Results
         ##################################################
 
+        chrp = gen_chirp( samp_rate = samp_rate, T = 1.0 / chirp_rate, phi0 = 262 )
+        chrp = np.repeat( chrp, int( nseconds * chirp_rate ) )
         expected_data = np.real( np.asarray( tuple( chrp ) ) )
         actual_data = np.real( np.asarray( self.vsnk.data() ) )
+        
+        #remove begin and end for power up and power down trans.te, phi0 = 265 )
+        remove_start = 60000;
+        remove_end = 75000;
+        expected_data = expected_data[remove_start:];
+        actual_data = actual_data[remove_start:];
+        expected_data = expected_data[:-remove_end];
+        actual_data = actual_data[:-remove_end];
 
         N1 = len( expected_data )
         N2 = len( actual_data )
@@ -164,7 +182,7 @@ class qa_single_streamer_loopback( single_streamer_lb ):
             actual_data /= np.max( np.abs( actual_data ), axis = 0 )
 
             N = N1
-            t1 = time_now.get_real_secs() + sob
+            t1 = time_now.get_real_secs() + sob + remove_start/samp_rate
             t2 = t1 + N / samp_rate
             t = np.arange( t1, t2, 1.0/samp_rate )
             f1 = np.real( expected_data )
