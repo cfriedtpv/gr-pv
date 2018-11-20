@@ -31,6 +31,6 @@ except ImportError:
 	pass
 
 # import any pure python here
-from crimson_sink import crimson_sink
-from crimson_source import crimson_source
+from crimson_sink_s import crimson_sink_s
+from crimson_source_c import crimson_source_c
 #

@@ -17,29 +17,7 @@
 # the Free Software Foundation, Inc., 51 Franklin Street,
 # Boston, MA 02110-1301, USA.
 
-########################################################################
-# Rules for generating the source and sink xml wrappers
-########################################################################
-include(GrPython)
-
-macro(GEN_BLOCK_XML _generator _xml_block)
-    set(generator ${CMAKE_CURRENT_SOURCE_DIR}/${_generator})
-    set(xml_block ${CMAKE_CURRENT_BINARY_DIR}/${_xml_block})
-    list(APPEND xml_blocks ${xml_block})
-    add_custom_command(
-        DEPENDS ${generator} OUTPUT ${xml_block}
-        COMMAND ${PYTHON_EXECUTABLE} ${generator} ${xml_block}
-    )
-endmacro(GEN_BLOCK_XML)
-
-GEN_BLOCK_XML(gen_pv_crimson_blocks.py    pv_crimson_source.xml)
-GEN_BLOCK_XML(gen_pv_crimson_blocks.py    pv_crimson_sink.xml)
-
-add_custom_target(pv_grc_xml_blocks ALL DEPENDS ${xml_blocks})
-
 install(FILES
-    ${xml_blocks}
-    pv_block_tree.xml
-    DESTINATION ${GRC_BLOCKS_DIR}
-    COMPONENT "pv_python"
+    pv_crimson_sink_s.xml
+    pv_crimson_source_c.xml DESTINATION share/gnuradio/grc/blocks
 )
